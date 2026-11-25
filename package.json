@@ -1,0 +1,22 @@
+{
+  "name": "acaia",
+  "private": true,
+  "description": "AçaIA — assistente de IA em português do Brasil",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "env:init": "node scripts/env-init.mjs",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:logs": "docker compose -f infra/docker-compose.yml logs -f db",
+    "dev": "node scripts/dev.mjs",
+    "test": "npm run test --workspaces",
+    "pro:models": "npm run pro:models -w apps/api"
+  }
+}

@@ -1,0 +1,24 @@
+# Local development database: PostgreSQL 17 + pgvector.
+# Usage (from the repo root): npm run db:up   /   npm run db:down
+name: acaia
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: acaia
+      POSTGRES_PASSWORD: acaia
+      POSTGRES_DB: acaia
+    ports:
+      # Bound to localhost only: the database is not reachable from your network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acaia -d acaia"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
