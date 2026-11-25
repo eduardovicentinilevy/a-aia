@@ -1,0 +1,12 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.app__main {
+  flex: 1;
+  min-height: 0; /* lets the message list scroll inside the flex column */
+  display: flex;
+  flex-direction: column;
+}

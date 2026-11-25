@@ -1,0 +1,159 @@
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 88%;
+  animation: message-in 0.2s ease-out;
+}
+
+.message--user {
+  align-self: flex-end;
+}
+
+.message--assistant {
+  align-self: flex-start;
+}
+
+.message__avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-top: 2px;
+  border-radius: var(--radius-full);
+  /* Always a light disc (like the header logo), so the berries stay visible in dark mode. */
+  background: var(--acai-100);
+  border: 1px solid var(--color-border);
+}
+
+.message__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.message__bubble {
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message--user .message__bubble {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-bottom-right-radius: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.message--assistant .message__bubble {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top-left-radius: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Blinking cursor while tokens arrive */
+.message--streaming .message__text::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 2px;
+  background: var(--color-primary);
+  animation: cursor-blink 1s steps(2, start) infinite;
+}
+
+/* Three bouncing berries before the first token */
+.message__typing {
+  display: inline-flex;
+  gap: 5px;
+  padding: 6px 0;
+}
+
+.message__typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--acai-400);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.message__typing span:nth-child(2) {
+  animation-delay: 0.15s;
+  background: var(--acai-500);
+}
+
+.message__typing span:nth-child(3) {
+  animation-delay: 0.3s;
+  background: var(--acai-600);
+}
+
+.message__placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.message--error .message__bubble {
+  border-color: var(--color-danger);
+}
+
+.message__error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.92rem;
+  white-space: normal;
+}
+
+.message__text + .message__error {
+  margin-top: 10px;
+}
+
+.message__meta {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .message {
+    max-width: 100%;
+  }
+
+  .message__avatar {
+    display: none;
+  }
+}

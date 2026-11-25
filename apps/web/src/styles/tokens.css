@@ -1,0 +1,69 @@
+/* Design tokens. Açaí is the primary brand color; every component reads these variables. */
+:root {
+  /* Açaí palette, from the pulp (light) to the berry skin (dark) */
+  --acai-50: #faf5fc;
+  --acai-100: #f2e6f8;
+  --acai-200: #e3c8ef;
+  --acai-300: #cc9be0;
+  --acai-400: #ad66c8;
+  --acai-500: #8e3dae;
+  --acai-600: #74278f;
+  --acai-700: #5c1a73;
+  --acai-800: #43115a;
+  --acai-900: #2d0a3e;
+  --acai-950: #1b0526;
+
+  /* Açaí palm leaf: tiny accents only */
+  --leaf-500: #4a9b3f;
+
+  /* Semantic colors (light theme) */
+  --color-primary: var(--acai-700);
+  --color-primary-hover: var(--acai-800);
+  --color-on-primary: #ffffff;
+  --color-primary-soft: var(--acai-100);
+  --color-bg: var(--acai-50);
+  --color-surface: #ffffff;
+  --color-text: #24132c;
+  --color-text-muted: #6e5d78;
+  --color-border: #eadcf1;
+  --color-focus: var(--acai-500);
+  --color-danger: #b3261e;
+  --color-danger-bg: #fdecea;
+  --header-bg: linear-gradient(120deg, var(--acai-950) 0%, var(--acai-800) 55%, var(--acai-600) 100%);
+  --focus-ring: 0 0 0 4px rgb(142 61 174 / 0.18);
+
+  /* Shape and depth */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgb(45 10 62 / 0.08);
+  --shadow-md: 0 10px 30px rgb(45 10 62 / 0.12);
+
+  /* Typography and layout */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --content-width: 780px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: var(--acai-500);
+    --color-primary-hover: var(--acai-400);
+    --color-primary-soft: #3a1a49;
+    --color-bg: var(--acai-950);
+    --color-surface: #26102f;
+    --color-text: #f4ecf8;
+    --color-text-muted: #bba9c6;
+    --color-border: #3d2149;
+    --color-focus: var(--acai-300);
+    --color-danger: #ffb4ab;
+    --color-danger-bg: #3b1214;
+    --header-bg: linear-gradient(120deg, #10031a 0%, var(--acai-900) 55%, var(--acai-700) 100%);
+    --focus-ring: 0 0 0 4px rgb(204 155 224 / 0.22);
+    --shadow-md: 0 10px 30px rgb(0 0 0 / 0.35);
+
+    color-scheme: dark;
+  }
+}

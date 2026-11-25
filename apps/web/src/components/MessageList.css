@@ -1,0 +1,14 @@
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-color: var(--acai-300) transparent;
+}
+
+.message-list__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 24px 16px 8px;
+}
