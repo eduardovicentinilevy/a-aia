@@ -54,4 +54,36 @@ describe('loadConfig', () => {
       expect(/** @type {Error} */ (err).message).not.toContain('super-secret-value');
     }
   });
+
+  it('parses invite and admin lists (admins are always invited)', () => {
+    const config = loadConfig({ ALLOWED_EMAILS: ' Alice@Example.com, bob@example.com ', ADMIN_EMAILS: 'eduardo@example.com' });
+    expect(config.allowedEmails).toEqual(['alice@example.com', 'bob@example.com', 'eduardo@example.com']);
+    expect(config.adminEmails).toEqual(['eduardo@example.com']);
+    expect(() => loadConfig({ ALLOWED_EMAILS: 'not-an-email' })).toThrow(/ALLOWED_EMAILS/);
+  });
+
+  it('converts the monthly budget to centavos and reads limits', () => {
+    const config = loadConfig({ MONTHLY_BUDGET_BRL: '150', DAILY_TOKEN_LIMIT_PER_USER: '20000' });
+    expect(config.monthlyBudgetCents).toBe(15_000);
+    expect(config.dailyTokenLimit).toBe(20_000);
+  });
+
+  it('demands login, database and invite list in production', () => {
+    try {
+      loadConfig({ NODE_ENV: 'production' });
+      expect.unreachable();
+    } catch (err) {
+      const problems = /** @type {ConfigError} */ (err).problems.join('\n');
+      expect(problems).toContain('FIREBASE_PROJECT_ID');
+      expect(problems).toContain('DATABASE_URL');
+      expect(problems).toContain('ALLOWED_EMAILS');
+    }
+    const ok = loadConfig({
+      NODE_ENV: 'production',
+      FIREBASE_PROJECT_ID: 'acaia-123456',
+      DATABASE_URL: 'postgres://u:p@host/db',
+      ADMIN_EMAILS: 'eduardo@example.com',
+    });
+    expect(ok.firebaseProjectId).toBe('acaia-123456');
+  });
 });

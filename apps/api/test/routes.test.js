@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { createMemoryStore } from '../src/db/memory-store.js';
+import { createDevUserMiddleware } from '../src/middleware/dev-user.js';
 import { silentLogger } from '../src/lib/logger.js';
 import { createChatPipeline } from '../src/orchestrator/pipeline.js';
 import { createMockProvider } from '../src/providers/model/mock.js';
@@ -18,12 +19,13 @@ function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proPro
     logger: silentLogger,
   });
   const app = createApp({
-    config: { corsOrigins: ['http://localhost:5173'] },
+    config: { corsOrigins: ['http://localhost:5173'], adminEmails: ['dev@localhost'], dailyTokenLimit: 1000 },
     logger: silentLogger,
     store,
     pipeline,
     checkDb,
     version: '0.0.0-test',
+    authenticate: createDevUserMiddleware(store),
   });
   return { app, store };
 }
@@ -76,6 +78,25 @@ describe('CORS', () => {
     expect(allowed.headers['access-control-allow-origin']).toBe('http://localhost:5173');
     const denied = await request(app).get('/health').set('Origin', 'https://evil.example');
     expect(denied.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});
+
+describe('/me', () => {
+  it('returns the logged-in user and whether they are an admin', async () => {
+    const { app } = buildApp();
+    const res = await request(app).get('/me').expect(200);
+    expect(res.body).toMatchObject({ email: 'dev@localhost', displayName: 'Dev local', isAdmin: true });
+  });
+
+  it("returns today's usage and the daily limit", async () => {
+    const { app, store } = buildApp();
+    const { body: me } = await request(app).get('/me');
+    const { body: before } = await request(app).get('/me/usage').expect(200);
+    expect(before).toMatchObject({ tokensUsed: 0, dailyTokenLimit: 1000, remainingTokens: 1000 });
+    await store.addUsage(me.id, before.day, { tokensIn: 300, tokensOut: 200, costCents: 0 });
+    const { body: after } = await request(app).get('/me/usage');
+    expect(after).toMatchObject({ tokensIn: 300, tokensOut: 200, tokensUsed: 500, remainingTokens: 500 });
+    expect(after.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
