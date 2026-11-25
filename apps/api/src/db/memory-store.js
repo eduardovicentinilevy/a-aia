@@ -1,63 +1,47 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_TITLE, ZERO_USAGE } from './store.js';
+
+/** @typedef {import('./store.js').Store} Store */
+/** @typedef {import('./store.js').Conversation} Conversation */
+/** @typedef {import('./store.js').Message} Message */
+/** @typedef {import('./store.js').User} User */
+/** @typedef {import('./store.js').Usage} Usage */
+
+export { DEFAULT_TITLE };
 
 /**
- * In-memory conversation store — Phase 0 only (data is lost on restart).
- * Phase 1 adds a PostgreSQL store with the SAME async interface, so routes and
- * the orchestrator do not change.
- *
- * @typedef {object} Conversation
- * @property {string} id
- * @property {string} userId
- * @property {string} title
- * @property {string} createdAt
- * @property {string} updatedAt
- *
- * @typedef {object} Message
- * @property {string} id
- * @property {string} conversationId
- * @property {'user'|'assistant'|'system'} role
- * @property {string} content
- * @property {string|null} model
- * @property {string|null} routeReason
- * @property {number|null} tokensIn
- * @property {number|null} tokensOut
- * @property {number|null} latencyMs
- * @property {number|null} firstTokenMs
- * @property {string} createdAt
- *
- * @typedef {Pick<Message, 'conversationId'|'role'|'content'> & Partial<Omit<Message, 'conversationId'|'role'|'content'|'createdAt'>>} NewMessage
- *
- * @typedef {object} ConversationStore
- * @property {(input: { userId: string, title?: string }) => Promise<Conversation>} createConversation
- * @property {(userId: string) => Promise<Conversation[]>} listConversations
- * @property {(id: string, userId: string) => Promise<Conversation|null>} getConversation
- * @property {(id: string, changes: { title: string }) => Promise<void>} updateConversation
- * @property {(conversationId: string) => Promise<Message[]>} listMessages
- * @property {(message: NewMessage) => Promise<Message>} addMessage
- */
-
-export const DEFAULT_TITLE = 'Nova conversa';
-
-/**
+ * In-memory implementation of the Store contract. Data is lost on restart:
+ * used by tests and by `npm run dev` when DATABASE_URL is not set.
  * @param {{ now?: () => Date }} [options]
- * @returns {ConversationStore}
+ * @returns {Store & { moderationEvents: import('./store.js').ModerationEvent[] }}
  */
 export function createMemoryStore({ now = () => new Date() } = {}) {
+  /** @type {Map<string, User>} keyed by authUid */
+  const users = new Map();
   /** @type {Map<string, Conversation>} */
   const conversations = new Map();
   /** @type {Map<string, Message[]>} */
   const messages = new Map();
+  /** @type {Map<string, Usage>} keyed by `${userId}|${day}` */
+  const usage = new Map();
+  /** @type {import('./store.js').ModerationEvent[]} */
+  const moderationEvents = [];
 
   return {
+    moderationEvents,
+
+    async upsertUser({ authUid, email = null, displayName = null }) {
+      const existing = users.get(authUid);
+      const user = existing
+        ? { ...existing, email, displayName }
+        : { id: randomUUID(), authUid, email, displayName, createdAt: now().toISOString() };
+      users.set(authUid, user);
+      return { ...user };
+    },
+
     async createConversation({ userId, title }) {
       const timestamp = now().toISOString();
-      const conversation = {
-        id: randomUUID(),
-        userId,
-        title: title ?? DEFAULT_TITLE,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
+      const conversation = { id: randomUUID(), userId, title: title ?? DEFAULT_TITLE, createdAt: timestamp, updatedAt: timestamp };
       conversations.set(conversation.id, conversation);
       messages.set(conversation.id, []);
       return { ...conversation };
@@ -80,6 +64,14 @@ export function createMemoryStore({ now = () => new Date() } = {}) {
       if (!conversation) return;
       conversation.title = title;
       conversation.updatedAt = now().toISOString();
+    },
+
+    async deleteConversation(id, userId) {
+      const conversation = conversations.get(id);
+      if (!conversation || conversation.userId !== userId) return false;
+      conversations.delete(id);
+      messages.delete(id);
+      return true;
     },
 
     async listMessages(conversationId) {
@@ -107,6 +99,33 @@ export function createMemoryStore({ now = () => new Date() } = {}) {
       list.push(message);
       conversation.updatedAt = message.createdAt;
       return { ...message };
+    },
+
+    async getUsage(userId, day) {
+      return { ...(usage.get(`${userId}|${day}`) ?? ZERO_USAGE) };
+    },
+
+    async addUsage(userId, day, delta) {
+      const key = `${userId}|${day}`;
+      const current = usage.get(key) ?? ZERO_USAGE;
+      usage.set(key, {
+        tokensIn: current.tokensIn + delta.tokensIn,
+        tokensOut: current.tokensOut + delta.tokensOut,
+        costCents: current.costCents + delta.costCents,
+      });
+    },
+
+    async getTotalCostCents(fromDay, toDay) {
+      let total = 0;
+      for (const [key, value] of usage) {
+        const day = key.split('|')[1];
+        if (day >= fromDay && day <= toDay) total += value.costCents;
+      }
+      return total;
+    },
+
+    async recordModerationEvent(event) {
+      moderationEvents.push({ messageId: null, ...event });
     },
   };
 }
