@@ -35,7 +35,10 @@
   - streaming, `usage` e tempo até a primeira palavra;
   - erro 401 vira mensagem amigável no chat e log detalhado no servidor;
   - o texto das mensagens não aparece nos logs.
-- **Não verificado:** o Gemini de verdade (não tenho sua chave) e a execução no Windows 10.
+- **Gemini de verdade verificado** (25/11), com a sua chave e `gemini-3.5-flash-lite`:
+  - streaming no navegador, persona da AçaIA e memória da conversa funcionando;
+  - os modelos Flash não enviaram nada em streaming neste ambiente, e o timeout mostrou a mensagem amigável como previsto (RUNBOOK §4).
+- **Não verificado:** a execução no Windows 10.
 
 ### O que **você** precisa fazer
 1. [ ] Instalar WSL 2, Docker Desktop, Node 26 (ou 24) e Git (RUNBOOK §1).

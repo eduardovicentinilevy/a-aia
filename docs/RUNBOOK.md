@@ -74,7 +74,7 @@ npm run dev
 Sem configurar nada, quem responde é o **MockProvider** (texto de teste). Para conversar com um modelo de verdade **sem custo**:
 
 1. Entre em **https://aistudio.google.com** com sua conta Google.
-2. Clique em **Get API key → Create API key**. Deixe o AI Studio criar um projeto novo para a chave.
+2. Clique em **Get API key → Create API key**. Deixe o AI Studio criar um projeto novo para a chave. A chave pode começar com `AIza…` ou `AQ.…`; os dois formatos funcionam e são mascarados nos logs. **Trate a chave como senha:** só no `.env`, nunca em chat, print ou commit.
 3. **Não ative faturamento (billing) nesse projeto.** Sem billing, a chave só usa o plano gratuito e não há como gerar cobrança. Se você estourar o limite, a API apenas recusa (erro 429) até o limite renovar.
 4. No `.env`, troque o bloco do Pro por:
 
@@ -90,7 +90,7 @@ Sem configurar nada, quem responde é o **MockProvider** (texto de teste). Para 
    npm run pro:models
    ```
 
-6. Escolha um modelo da lista (no plano gratuito, os **Flash** ou **Flash-Lite** têm limites maiores), coloque em `PRO_MODEL=` e reinicie o `npm run dev`.
+6. Escolha um modelo da lista, coloque em `PRO_MODEL=` e reinicie o `npm run dev`. **Recomendado: `gemini-3.5-flash-lite`**, testado em 25/11/2026: streaming funcionando e limites maiores no plano gratuito. Nesse teste, os modelos **Flash** (`gemini-flash-latest`, `gemini-3.5-flash`) não enviaram nada em modo streaming, embora respondam normalmente sem streaming. Se o chat mostrar *"O modelo demorou demais para responder"*, troque por um modelo **lite**.
 7. No chat, a linha abaixo da resposta passa a mostrar `AçaIA Pro · <modelo>`.
 
 **Cuidados com o plano gratuito:**

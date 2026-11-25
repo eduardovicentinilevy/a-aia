@@ -12,6 +12,7 @@ describe('maskPII', () => {
     ['Authorization: Bearer abc.def-123', 'Authorization: Bearer [REDACTED]'],
     ['key sk-abcdefghijklmnop1234', 'key [REDACTED_KEY]'],
     ['google AIzaSyA1234567890abcdefghijklmnopqrstuv', 'google [REDACTED_KEY]'],
+    ['google AQ.Zz9FAKEfakeFAKEfake-1234_567890', 'google [REDACTED_KEY]'],
     ['GET /v1/models?key=abc123&x=1', 'GET /v1/models?key=[REDACTED]&x=1'],
     ['jwt eyJhbGciOi.eyJzdWIiOi.c2lnbmF0dXJl', 'jwt [REDACTED_JWT]'],
   ])('masks %j', (input, expected) => {

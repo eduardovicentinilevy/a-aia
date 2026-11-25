@@ -18,6 +18,7 @@ const STRING_RULES = [
   // Common API key shapes: sk-..., Google AIza...
   [/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{16,}/g, '[REDACTED_KEY]'],
   [/\bAIza[0-9A-Za-z_-]{30,}/g, '[REDACTED_KEY]'],
+  [/\bAQ\.[0-9A-Za-z_-]{20,}/g, '[REDACTED_KEY]'], // newer Google API key format
   // key=value in URLs or query strings
   [/\b(api[_-]?key|key|token|access_token|secret|password)=([^&\s"']+)/gi, '$1=[REDACTED]'],
   // E-mail

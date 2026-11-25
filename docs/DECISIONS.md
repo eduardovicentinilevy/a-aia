@@ -48,6 +48,7 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 
 - **Contexto:** pedido do Eduardo: "qualquer um, desde que não me gere custos".
 - **Escolha:** Gemini API pelo endpoint compatível com OpenAI (`https://generativelanguage.googleapis.com/v1beta/openai`), com a chave num projeto **sem faturamento ativado**. Sem billing não existe como haver cobrança: ao passar do limite, a API só responde 429.
+- **Modelo em uso:** `gemini-3.5-flash-lite`, uma versão fixa (não um apelido `-latest`), para os resultados serem comparáveis na Fase 2. Os modelos Flash travaram em streaming no teste de 25/11 (RUNBOOK §4).
 - **Alternativas também compatíveis e com plano gratuito:** Groq e modelos gratuitos do OpenRouter. Basta trocar `PRO_BASE_URL`, `PRO_API_KEY` e `PRO_MODEL`.
 - **Riscos aceitos:**
   1. **Cota baixa e variável:** o mock continua o padrão do dia a dia, e o erro 429 vira uma mensagem amigável no chat.
