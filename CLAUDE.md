@@ -68,7 +68,7 @@ Ciclo de melhoria (assíncrono): avaliações com consentimento → dataset → 
 
 ### 5.2 Stack
 - **API:** Node.js (LTS atual), Express, JavaScript com ES Modules e JSDoc. Validação com `zod`, segurança com `helmet`, CORS restrito e rate limit.
-- **Web:** HTML, CSS e JavaScript puro (ES Modules), sem framework no MVP. Streaming via `fetch` + `ReadableStream` lendo SSE (não use `EventSource`, que não aceita POST). Markdown renderizado com sanitização (`DOMPurify` ou equivalente).
+- **Web:** React com Vite, em JavaScript (JSX) e **CSS puro** (um `.css` por componente e variáveis CSS; sem Tailwind, CSS-in-JS ou biblioteca de UI). **Cor principal: açaí** (paleta em `apps/web/src/styles/tokens.css`). Streaming via `fetch` + `ReadableStream` lendo SSE (não use `EventSource`, que não aceita POST). Markdown renderizado com sanitização (`DOMPurify` ou equivalente). *(Alterado na Fase 0 a pedido do Eduardo; antes era "HTML, CSS e JS puro, sem framework" — ver `docs/DECISIONS.md` D-013.)*
 - **Banco:** PostgreSQL com a extensão `pgvector` (Cloud SQL em produção, Docker em desenvolvimento). Migrações versionadas, por exemplo com `node-pg-migrate`.
 - **Login:** Firebase Authentication / Identity Platform (Google + e-mail). **Não implemente senha do zero.** A API valida o ID token.
 - **Arquivos:** Cloud Storage para os PDFs.
@@ -90,7 +90,7 @@ acaia/
 │  │  │  ├─ middleware/    # auth, rate limit, erros, logs com mascaramento de PII
 │  │  │  └─ prompts/       # system prompt versionado (system.v1.md, ...)
 │  │  └─ test/
-│  └─ web/                 # chat estático
+│  └─ web/                 # chat em React + Vite (gera um site estático)
 ├─ services/
 │  └─ inference/           # Dockerfile do vLLM + config para Cloud Run GPU
 ├─ ml/

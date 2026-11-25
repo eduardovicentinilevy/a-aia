@@ -63,7 +63,7 @@ npm run db:up
 npm run dev
 ```
 
-- Chat: **http://localhost:5173**
+- Chat: **http://localhost:5173** (React com Vite: ao salvar um `.jsx` ou `.css`, a tela atualiza na hora, sem perder a conversa)
 - API: **http://localhost:8080/health** deve responder `"status":"ok"` e `"pgvector":true`.
 - Para parar: `Ctrl+C` no terminal do `npm run dev`. O banco continua rodando; para desligar, use `npm run db:down`. Os dados do banco ficam guardados num volume do Docker.
 
@@ -112,6 +112,15 @@ $env:TEST_DATABASE_URL="postgres://acaia:acaia@localhost:5432/acaia"; npm test
 
 No macOS/Linux: `TEST_DATABASE_URL=postgres://acaia:acaia@localhost:5432/acaia npm test`.
 
+Build de produção do chat (o que vai para o ar na Fase 1):
+
+```powershell
+npm run build -w apps/web
+npm run preview -w apps/web
+```
+
+O `build` gera `apps/web/dist/` e o `preview` serve esse resultado em http://localhost:5173 para conferir.
+
 ## 6. Problemas comuns
 
 | Sintoma | Causa provável | Solução |
@@ -123,7 +132,7 @@ No macOS/Linux: `TEST_DATABASE_URL=postgres://acaia:acaia@localhost:5432/acaia n
 | `npm run dev` diz *"Configuração inválida no .env"* | Variável faltando ou com valor inválido | A mensagem lista quais; confira o `.env` |
 | O chat mostra *"Não consegui falar com a API"* | API parada ou em outra porta | Veja o terminal do `npm run dev` |
 | O chat mostra *"O limite de uso do modelo foi atingido"* | Cota do plano gratuito do Pro | Espere renovar ou volte para `PRO_PROVIDER=mock` |
-| `EADDRINUSE :8080` ou `:5173` | Outro programa ou um `npm run dev` antigo usando a porta | Feche o outro terminal, ou mude `PORT` / `WEB_PORT` no `.env`. Se mudar `PORT`, ajuste `API_BASE_URL` em `apps/web/public/js/config.js`; se mudar `WEB_PORT`, ajuste `CORS_ORIGIN` |
+| `EADDRINUSE :8080` ou `:5173` | Outro programa ou um `npm run dev` antigo usando a porta | Feche o outro terminal, ou mude `PORT` / `WEB_PORT` no `.env`. Se mudar `PORT`, ajuste `VITE_API_BASE_URL`; se mudar `WEB_PORT`, ajuste `CORS_ORIGIN` |
 
 **Plano B se o Docker Desktop não instalar no Windows 10:** rode o PostgreSQL dentro do WSL 2 (Ubuntu), sem Docker:
 

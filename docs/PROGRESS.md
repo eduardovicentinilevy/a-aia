@@ -16,13 +16,21 @@
   - Trava de segurança: a API não sobe com `NODE_ENV=production` enquanto não houver login.
 - **Providers de modelo**: `MockProvider`, adaptador compatível com OpenAI (base do Pro agora e do Copinho na Fase 3) e `ProProvider` configurável por `.env`. `npm run pro:models` lista os modelos da sua chave.
 - **System prompt v1** versionado em `apps/api/src/prompts/system.v1.md`, com persona, honestidade, segurança e a regra de "dados não confiáveis" pronta para o RAG.
-- **Chat web** sem dependências: streaming via `fetch` + `ReadableStream`, botões "Parar" e "Nova conversa", tempo até a primeira palavra, modo escuro.
+- **Chat web em React + CSS puro** (Vite), com o **açaí como cor principal** (D-013):
+  - paleta `--acai-50…950` em variáveis CSS, com modo claro e escuro;
+  - tela inicial com sugestões clicáveis;
+  - streaming com cursor e "frutinhas pulando" enquanto espera a primeira palavra;
+  - botões "Parar" e "Nova conversa", tempo até a primeira palavra e layout de celular;
+  - estado num reducer puro e testado (`useChat` + `chat-reducer.js`).
 - **Docs**: README, RUNBOOK (focado em Windows 10), DECISIONS (D-001 a D-012) e GCP_SETUP.
 
 ### Verificado (no ambiente Linux de desenvolvimento)
-- **61 testes** (vitest + supertest) passando no Node 26 e no Node 22, inclusive contra o Postgres real do compose.
+- **86 testes** passando: 61 da API (vitest + supertest), no Node 26 e no 22, inclusive contra o Postgres real do compose, e 25 do web (reducer, formatação e cliente da API).
+- `npm run build -w apps/web` gera o bundle de produção (≈ 72 KB com gzip). Corrigi um problema em que o `.env` da raiz fazia o build sair em modo de desenvolvimento (D-014).
 - `npm run db:up` → `/health` com `"status":"ok"` e `"pgvector":true`.
-- Navegador real (Chromium headless) em http://localhost:5173: resposta em streaming, CORS, botão "Parar" e nenhum erro no console.
+- Navegador real (Chromium headless) em http://localhost:5173, nos modos claro e escuro e na tela de celular (Pixel 7):
+  - sugestão clicável, streaming, Enter e Shift+Enter, "Parar" e "Nova conversa";
+  - nenhum erro no console e nenhuma rolagem horizontal no celular.
 - Caminho do Pro testado de ponta a ponta contra um servidor falso compatível com OpenAI:
   - streaming, `usage` e tempo até a primeira palavra;
   - erro 401 vira mensagem amigável no chat e log detalhado no servidor;

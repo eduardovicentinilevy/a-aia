@@ -31,14 +31,15 @@ Abra **http://localhost:5173** e converse. Sem configurar nada, quem responde é
 | `npm run env:init` | Cria o `.env` a partir do `.env.example` (só se ainda não existir) |
 | `npm run db:up` / `npm run db:down` | Sobe / derruba o PostgreSQL 17 + pgvector no Docker |
 | `npm run dev` | Sobe a API (http://localhost:8080) e o chat web (http://localhost:5173) |
-| `npm test` | Roda todos os testes |
+| `npm test` | Roda todos os testes (API e web) |
+| `npm run build -w apps/web` | Gera o site de produção do chat em `apps/web/dist/` |
 | `npm run pro:models` | Lista os modelos disponíveis para a sua chave do Pro |
 
 ## Estrutura
 
 ```
 apps/api/      API Node.js/Express: rotas, orquestrador, providers, prompts
-apps/web/      Chat web em HTML, CSS e JavaScript puro
+apps/web/      Chat web em React + CSS puro (Vite), com o açaí como cor principal
 infra/         docker-compose do banco local
 scripts/       utilitários de desenvolvimento (multiplataforma)
 docs/          PROGRESS, DECISIONS, RUNBOOK e guia do Google Cloud

@@ -16,7 +16,7 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 | `nodemon` | `node --watch` | Nativo |
 | `concurrently` | `scripts/dev.mjs` (≈80 linhas) | Sobe API e web juntas em Windows/macOS/Linux e encerra a árvore de processos inteira |
 | `axios` / SDK do provedor | `fetch` nativo + `parseSSE` próprio | Ver D-003 |
-| Vite / `serve` | `apps/web/dev-server.js` (≈60 linhas, `node:http`) | Ver D-006 |
+| `dotenv` no web | `util.parseEnv` nativo no `vite.config.js` | Ver D-014 |
 
 ## D-002 — Dependências da Fase 0
 **Fase 0 · aceita**
@@ -30,8 +30,10 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 | `pg` | 8.23 | API | Cliente PostgreSQL. Na Fase 0 só serve ao `/health`; na Fase 1, a migrações e queries |
 | `vitest` | 5.1 | API (dev) | Testes, definido na stack |
 | `supertest` | 7.3 | API (dev) | Testes de integração das rotas sem abrir porta |
-
-O chat web tem **zero** dependências.
+| `react`, `react-dom` | 19.3 | Web | Interface em componentes (D-013) |
+| `vite` | 8.3 | Web (dev) | Servidor de desenvolvimento com recarga instantânea e build de produção (D-013) |
+| `@vitejs/plugin-react` | 6.3 | Web (dev) | JSX e *Fast Refresh* (edita o componente sem perder o estado da tela) |
+| `vitest` | 5.1 | Web (dev) | O mesmo executor de testes da API; ele lê o `vite.config.js` |
 
 ## D-003 — Pro via adaptador "compatível com OpenAI"
 **Fase 0 · aceita**
@@ -61,7 +63,7 @@ O chat web tem **zero** dependências.
 - **Proteção:** sem login, a API **se recusa a subir com `NODE_ENV=production`**. Essa trava sai na Fase 1, junto com a autenticação.
 
 ## D-006 — Servidor estático próprio na porta 5173
-**Fase 0 · aceita**
+**Fase 0 · substituída por D-013** (o Vite assumiu a porta 5173)
 
 - **Contexto:** o `.env.example` usa `CORS_ORIGIN=http://localhost:5173`, a porta padrão do Vite, mas o MVP não usa bundler.
 - **Escolha:** `apps/web/dev-server.js` com `node:http`, na porta 5173, servindo só `apps/web/public`, com proteção contra *path traversal*.
@@ -70,7 +72,7 @@ O chat web tem **zero** dependências.
 ## D-007 — Resposta como texto puro na Fase 0; Markdown e DOMPurify na Fase 1
 **Fase 0 · aceita**
 
-- A resposta do modelo é inserida com `textContent` ou `append(texto)`, que nunca interpreta HTML. Assim não há XSS, mesmo sem sanitizador.
+- A resposta do modelo é renderizada como texto: no React, `{texto}` no JSX sempre é escapado e nunca vira HTML. Assim não há XSS, mesmo sem sanitizador. **Nunca** use `dangerouslySetInnerHTML` sem DOMPurify.
 - Markdown renderizado com DOMPurify entra na Fase 1. O MockProvider não usa Markdown, para não mostrar `**` soltos.
 
 ## D-008 — PostgreSQL 17 + pgvector em desenvolvimento
@@ -88,7 +90,7 @@ O chat web tem **zero** dependências.
 ## D-010 — Parser de SSE duplicado na web, com teste de paridade
 **Fase 0 · aceita**
 
-- `apps/web/public/js/sse-parser.js` é **cópia idêntica** de `apps/api/src/lib/sse-parser.js`, porque a web não tem bundler para importar da API. Um teste (`sse-parser.test.js`) falha se as cópias divergirem, e os testes do parser cobrem as duas.
+- `apps/web/src/lib/sse-parser.js` é **cópia idêntica** de `apps/api/src/lib/sse-parser.js`: os dois apps são empacotados e publicados separadamente, e um pacote compartilhado só para um arquivo seria exagero agora. Um teste (`sse-parser.test.js`) falha se as cópias divergirem, e os testes do parser cobrem as duas.
 
 ## D-011 — Alerta de orçamento não é teto de gasto
 **Fase 0 · aceita**
@@ -103,3 +105,25 @@ O chat web tem **zero** dependências.
 - Scripts multiplataforma (`scripts/*.mjs`), sem `&&`, `rm` ou `VAR=x cmd` no `package.json`. `.gitattributes` força LF.
 - O Windows 10 saiu do suporte da Microsoft, e o Docker Desktop só garante suporte a versões do Windows ainda atendidas. Plano B documentado no RUNBOOK: PostgreSQL + pgvector direto no WSL 2.
 - O código só foi testado em Linux, com Node 22 e 26. A primeira execução no Windows do Eduardo é o teste real; qualquer problema vira um `fix:`.
+
+## D-013 — Frontend em React + CSS puro, com o açaí como cor principal
+**Fase 0 · aceita (substitui "HTML, CSS e JS puro, sem framework" do CLAUDE.md §5.2 e a D-006)**
+
+- **Contexto:** pedido do Eduardo: "faz em React e CSS puro, utilizando o açaí como cor principal". Combina com a lacuna "Front-end moderno (React ou Vue)" do roteiro em PDF.
+- **Escolha:**
+  - **React 19 + Vite 8**, em **JavaScript com JSX** (sem TypeScript, como no resto da stack).
+  - **CSS puro:** um arquivo `.css` por componente (`Header.css`, `Message.css`...) com nomes no padrão BEM (`bloco__elemento--modificador`). Nada de Tailwind, CSS-in-JS ou biblioteca de componentes.
+  - **Tema:** todas as cores, raios e sombras são variáveis CSS em `src/styles/tokens.css`. A paleta `--acai-50…950` é a base; os componentes só usam os nomes semânticos (`--color-primary`, `--color-surface`...), e o modo escuro troca só esses nomes.
+  - **Estado:** um reducer **puro** (`lib/chat-reducer.js`) dentro do hook `useChat`, que concentra os efeitos colaterais (API, streaming, cancelamento). Os componentes só recebem dados e callbacks.
+- **Testes:** unitários do reducer, da formatação e do cliente da API (vitest, ambiente Node). Não há testes de componente, porque exigiriam `jsdom` + Testing Library (mais 2–3 dependências). A interface foi verificada no Chromium nos modos claro e escuro e no celular. Se a interface crescer (Fase 4–5), reavaliar.
+- **Custos:**
+  - mais 4 dependências e um passo de build;
+  - o bundle de produção tem ≈ 72 KB com gzip (≈ 229 KB sem compressão), quase tudo do React.
+- **Produção (Fase 1):** `npm run build -w apps/web` gera `apps/web/dist/`, um site estático para publicar.
+
+## D-014 — O web lê só `WEB_PORT` e `VITE_*` do `.env` da raiz
+**Fase 0 · aceita**
+
+- **Problema encontrado:** deixando o Vite ler o `.env` da raiz (via `envDir` ou `loadEnv`), ele pega o `NODE_ENV=development` da API e o `vite build` gera o React **de desenvolvimento**: 441 KB em vez de 229 KB, mais lento e com avisos internos.
+- **Escolha:** `envDir: false` no Vite. O `vite.config.js` lê o `.env` com `util.parseEnv` do Node, que não tem efeitos colaterais, e usa só `WEB_PORT` e `VITE_API_BASE_URL`. Variáveis de ambiente reais, como as do CI, têm prioridade sobre o arquivo.
+- **Regra de segurança:** tudo que começa com `VITE_` vai parar no JavaScript público do navegador. **Nunca** dê esse prefixo a um segredo.
