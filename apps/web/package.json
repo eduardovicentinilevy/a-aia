@@ -2,5 +2,10 @@
   "name": "@acaia/web",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "description": "Chat web da AçaIA (HTML, CSS e JavaScript puro)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.js"
+  }
 }
