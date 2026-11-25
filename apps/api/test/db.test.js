@@ -1,6 +1,7 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkDatabase, createPool } from '../src/db/pool.js';
 import { silentLogger } from '../src/lib/logger.js';
+import { dbAvailable, freshDatabase } from './helpers/test-db.js';
 
 describe('checkDatabase', () => {
   it('reports not_configured without a pool', async () => {
@@ -15,12 +16,12 @@ describe('checkDatabase', () => {
   });
 });
 
-// Runs only when a real database is available (e.g. after `npm run db:up`):
-//   TEST_DATABASE_URL=postgres://acaia:acaia@localhost:5432/acaia npm test
-const databaseUrl = process.env.TEST_DATABASE_URL;
-
-describe.skipIf(!databaseUrl)('checkDatabase against the docker compose database', () => {
-  const pool = databaseUrl ? createPool(databaseUrl, silentLogger) : null;
+describe.skipIf(!dbAvailable)('checkDatabase against a real PostgreSQL', () => {
+  /** @type {import('pg').Pool} */
+  let pool;
+  beforeAll(async () => {
+    pool = await freshDatabase('acaia_test_health', { migrated: false });
+  });
   afterAll(() => pool?.end());
 
   it('connects and finds the pgvector extension', async () => {

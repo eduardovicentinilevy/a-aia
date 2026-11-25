@@ -15,6 +15,8 @@
     "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
     "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:logs": "docker compose -f infra/docker-compose.yml logs -f db",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:rollback": "npm run db:rollback -w apps/api --",
     "dev": "node scripts/dev.mjs",
     "test": "npm run test --workspaces --if-present",
     "pro:models": "npm run pro:models -w apps/api"

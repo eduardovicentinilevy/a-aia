@@ -14,7 +14,9 @@
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pro:models": "node --env-file-if-exists=../../.env scripts/list-models.js"
+    "pro:models": "node --env-file-if-exists=../../.env scripts/list-models.js",
+    "db:migrate": "node --env-file-if-exists=../../.env scripts/migrate.js up",
+    "db:rollback": "node --env-file-if-exists=../../.env scripts/migrate.js down"
   },
   "dependencies": {
     "cors": "^2.8.6",
