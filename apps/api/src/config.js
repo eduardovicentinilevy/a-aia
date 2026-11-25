@@ -31,6 +31,7 @@ const EnvSchema = z
     ADMIN_EMAILS: env(z.string().default('')),
     DAILY_TOKEN_LIMIT_PER_USER: env(z.coerce.number().int().min(0).default(50_000)),
     MONTHLY_BUDGET_BRL: env(z.coerce.number().min(0).default(150)),
+    MODERATION_PROVIDER: env(z.enum(['keyword', 'mock']).default('keyword')),
   })
   .superRefine((values, ctx) => {
     /** @param {string} key @param {string} message */
@@ -97,7 +98,8 @@ export class ConfigError extends Error {
  * @property {string[]} allowedEmails  Invite list (includes admins). Empty = everybody (development only).
  * @property {string[]} adminEmails
  * @property {number} dailyTokenLimit
- * @property {number} monthlyBudgetCents  In centavos (BRL).
+ * @property {number} monthlyBudgetCents  In centavos (BRL). 0 = no budget limit.
+ * @property {'keyword'|'mock'} moderationProvider
  */
 
 /**
@@ -136,5 +138,6 @@ export function loadConfig(source = process.env) {
     adminEmails: parseEmails(values.ADMIN_EMAILS),
     dailyTokenLimit: values.DAILY_TOKEN_LIMIT_PER_USER,
     monthlyBudgetCents: Math.round(values.MONTHLY_BUDGET_BRL * 100),
+    moderationProvider: values.MODERATION_PROVIDER,
   });
 }

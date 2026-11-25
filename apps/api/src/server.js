@@ -9,6 +9,8 @@ import { createLogger } from './lib/logger.js';
 import { createAuthMiddleware, createFirebaseTokenVerifier } from './middleware/auth.js';
 import { createDevUserMiddleware } from './middleware/dev-user.js';
 import { createChatPipeline } from './orchestrator/pipeline.js';
+import { createUsageLimits } from './orchestrator/usage.js';
+import { createModerationProvider } from './providers/moderation/index.js';
 import { loadSystemPrompt, SYSTEM_PROMPT_VERSION } from './prompts/index.js';
 import { createProProvider } from './providers/model/pro.js';
 
@@ -51,9 +53,16 @@ if (!config.firebaseProjectId) {
 }
 
 const proProvider = createProProvider(config.pro);
+const usageLimits = createUsageLimits({
+  store,
+  dailyTokenLimit: config.dailyTokenLimit,
+  monthlyBudgetCents: config.monthlyBudgetCents,
+});
 const pipeline = createChatPipeline({
   store,
   proProvider,
+  moderation: createModerationProvider(config.moderationProvider),
+  usageLimits,
   systemPrompt: loadSystemPrompt(SYSTEM_PROMPT_VERSION),
   promptVersion: SYSTEM_PROMPT_VERSION,
   maxOutputTokens: config.maxOutputTokens,
@@ -61,13 +70,14 @@ const pipeline = createChatPipeline({
 });
 
 const app = createApp({
-  config,
+  config: { ...config, trustProxy: config.nodeEnv === 'production' },
   logger,
   store,
   pipeline,
   checkDb: () => checkDatabase(pool),
   version: pkg.version,
   authenticate,
+  usageLimits,
 });
 
 // In development, listen only on this machine (no firewall prompt, not exposed to the network).

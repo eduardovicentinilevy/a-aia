@@ -5,27 +5,36 @@ import { createMemoryStore } from '../src/db/memory-store.js';
 import { createDevUserMiddleware } from '../src/middleware/dev-user.js';
 import { silentLogger } from '../src/lib/logger.js';
 import { createChatPipeline } from '../src/orchestrator/pipeline.js';
+import { createUsageLimits } from '../src/orchestrator/usage.js';
 import { createMockProvider } from '../src/providers/model/mock.js';
+import { createMockModerationProvider } from '../src/providers/moderation/mock.js';
 
-/** @param {{ checkDb?: () => Promise<any>, proProvider?: any }} [options] */
-function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proProvider } = {}) {
+/**
+ * @param {{ checkDb?: () => Promise<any>, proProvider?: any, dailyTokenLimit?: number, rateLimits?: any }} [options]
+ */
+function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proProvider, dailyTokenLimit = 1000, rateLimits } = {}) {
   const store = createMemoryStore();
+  const usageLimits = createUsageLimits({ store, dailyTokenLimit, monthlyBudgetCents: 0 });
   const pipeline = createChatPipeline({
     store,
     proProvider: proProvider ?? createMockProvider({ name: 'pro', model: 'mock', reply: 'Oi! Tudo certo.', delayMs: 0 }),
+    moderation: createMockModerationProvider(),
+    usageLimits,
     systemPrompt: 'SYSTEM',
     promptVersion: 'v1',
     maxOutputTokens: 256,
     logger: silentLogger,
   });
   const app = createApp({
-    config: { corsOrigins: ['http://localhost:5173'], adminEmails: ['dev@localhost'], dailyTokenLimit: 1000 },
+    config: { corsOrigins: ['http://localhost:5173'], adminEmails: ['dev@localhost'], dailyTokenLimit },
     logger: silentLogger,
     store,
     pipeline,
     checkDb,
     version: '0.0.0-test',
     authenticate: createDevUserMiddleware(store),
+    usageLimits,
+    rateLimits,
   });
   return { app, store };
 }
@@ -229,3 +238,50 @@ describe('POST /conversations/:id/messages', () => {
     }
   });
 });
+
+describe('limits on sending messages', () => {
+  /** @param {import('express').Express} app */
+  const sendTo = async (app, content = 'Oi') => {
+    const { body: conversation } = await request(app).post('/conversations').send({});
+    return request(app).post(`/conversations/${conversation.id}/messages`).send({ content }).buffer(true).parse(asText);
+  };
+
+  it('answers 429 JSON (before streaming) when the daily token limit is reached', async () => {
+    const { app, store } = buildApp({ dailyTokenLimit: 100 });
+    const { body: me } = await request(app).get('/me');
+    const { body: usage } = await request(app).get('/me/usage');
+    await store.addUsage(me.id, usage.day, { tokensIn: 100, tokensOut: 0, costCents: 0 });
+
+    const res = await sendTo(app);
+    expect(res.status).toBe(429);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(JSON.parse(res.body).error.code).toBe('daily_limit_reached');
+  });
+
+  it('records usage after each answer', async () => {
+    const { app } = buildApp();
+    await sendTo(app);
+    const { body } = await request(app).get('/me/usage');
+    expect(body.tokensUsed).toBeGreaterThan(0);
+  });
+
+  it('limits how many messages a user can send per window', async () => {
+    const { app } = buildApp({ rateLimits: { messages: { windowMs: 60_000, limit: 2 } } });
+    expect((await sendTo(app)).status).toBe(200);
+    expect((await sendTo(app)).status).toBe(200);
+    const third = await sendTo(app);
+    expect(third.status).toBe(429);
+    expect(JSON.parse(third.body).error.code).toBe('too_many_messages');
+    // Other routes keep working.
+    await request(app).get('/conversations').expect(200);
+  });
+
+  it('limits requests per IP across routes, but never /health', async () => {
+    const { app } = buildApp({ rateLimits: { ip: { windowMs: 60_000, limit: 3 } } });
+    for (let i = 0; i < 3; i += 1) await request(app).get('/me').expect(200);
+    const blocked = await request(app).get('/me').expect(429);
+    expect(blocked.body.error.code).toBe('rate_limited');
+    await request(app).get('/health').expect(200);
+  });
+});
+

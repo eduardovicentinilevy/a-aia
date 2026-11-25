@@ -19,9 +19,11 @@ const SendMessageBody = z.strictObject({
  * @param {object} deps
  * @param {import('../db/store.js').Store} deps.store
  * @param {ReturnType<typeof import('../orchestrator/pipeline.js').createChatPipeline>} deps.pipeline
+ * @param {ReturnType<typeof import('../orchestrator/usage.js').createUsageLimits>} deps.usageLimits
+ * @param {import('express').RequestHandler} deps.messageRateLimit
  * @param {import('../lib/logger.js').Logger} deps.logger
  */
-export function createConversationsRouter({ store, pipeline, logger }) {
+export function createConversationsRouter({ store, pipeline, usageLimits, messageRateLimit, logger }) {
   const router = Router();
 
   /**
@@ -65,10 +67,14 @@ export function createConversationsRouter({ store, pipeline, logger }) {
   });
 
   // Sends a user message and streams the answer as Server-Sent Events:
-  // meta → token* → done   (or meta → token* → error)
-  router.post('/:id/messages', async (req, res) => {
+  // meta → token* → done   (or meta → token* → error). `done` may carry `replacement`
+  // when output moderation replaced the answer.
+  router.post('/:id/messages', messageRateLimit, async (req, res) => {
     const body = SendMessageBody.parse(req.body);
     const conversation = await findOwnedConversation(req);
+    const userId = /** @type {any} */ (req).user.id;
+    // Limits are checked BEFORE streaming starts, so they come back as a normal JSON error (429/503).
+    await usageLimits.assertWithinLimits(userId);
 
     // If the client disconnects (closes the tab, presses "stop"), cancel the model call.
     const controller = new AbortController();
@@ -79,6 +85,7 @@ export function createConversationsRouter({ store, pipeline, logger }) {
     const stream = openEventStream(res);
     try {
       await pipeline.handleMessage({
+        userId,
         conversation,
         content: body.content,
         signal: controller.signal,
