@@ -33,15 +33,18 @@ async function readErrorDetail(response) {
  * @param {string} options.apiKey
  * @param {string} options.model
  * @param {number} [options.timeoutMs] Max wait for the first streamed chunk.
+ * @param {boolean} [options.includeUsage] Ask for token counts in the stream (needed for limits and cost).
+ * @param {import('./types.js').Pricing} [options.pricing]
  * @param {typeof fetch} [options.fetchImpl]
  * @returns {ModelProvider}
  */
-export function createOpenAICompatibleProvider({ name, baseUrl, apiKey, model, timeoutMs = 30_000, fetchImpl = fetch }) {
+export function createOpenAICompatibleProvider({ name, baseUrl, apiKey, model, timeoutMs = 30_000, includeUsage = true, pricing, fetchImpl = fetch }) {
   const url = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
   return {
     name,
     model,
+    pricing,
     async *stream({ messages, maxTokens, temperature, signal }) {
       // One controller cancels the HTTP request for any reason: caller abort, timeout or early stop.
       const controller = new AbortController();
@@ -74,6 +77,8 @@ export function createOpenAICompatibleProvider({ name, baseUrl, apiKey, model, t
           /** @type {Record<string, unknown>} */
           const body = { model, messages, stream: true, max_tokens: maxTokens };
           if (temperature !== undefined) body.temperature = temperature;
+          // Without this, most providers (Gemini, vLLM) send no token counts when streaming.
+          if (includeUsage) body.stream_options = { include_usage: true };
           response = await fetchImpl(url, {
             method: 'POST',
             headers: {

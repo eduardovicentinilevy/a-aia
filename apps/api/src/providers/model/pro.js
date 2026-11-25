@@ -8,9 +8,10 @@ import { createOpenAICompatibleProvider } from './openai-compatible.js';
  * @returns {import('./types.js').ModelProvider}
  */
 export function createProProvider(pro) {
+  const pricing = { inputBrlPer1M: pro.costInputBrlPer1M ?? 0, outputBrlPer1M: pro.costOutputBrlPer1M ?? 0 };
   switch (pro.provider) {
     case 'mock':
-      return createMockProvider({ name: 'pro', model: 'mock' });
+      return { ...createMockProvider({ name: 'pro', model: 'mock' }), pricing };
     case 'openai-compatible':
       return createOpenAICompatibleProvider({
         name: 'pro',
@@ -18,6 +19,7 @@ export function createProProvider(pro) {
         apiKey: /** @type {string} */ (pro.apiKey),
         model: /** @type {string} */ (pro.model),
         timeoutMs: pro.timeoutMs,
+        pricing,
       });
     default:
       throw new Error(`Unknown PRO_PROVIDER: ${pro.provider}`);

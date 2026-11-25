@@ -68,7 +68,14 @@ describe('OpenAI-compatible provider', () => {
     const [request] = fake.requests;
     expect(request.url).toBe('/v1/chat/completions');
     expect(request.headers.authorization).toBe('Bearer test-key');
-    expect(request.body).toEqual({ model: 'm1', messages, stream: true, max_tokens: 64, temperature: 0.3 });
+    expect(request.body).toEqual({
+      model: 'm1',
+      messages,
+      stream: true,
+      max_tokens: 64,
+      temperature: 0.3,
+      stream_options: { include_usage: true },
+    });
   });
 
   it('turns HTTP errors into ProviderError with status and a log-only detail', async () => {
