@@ -60,8 +60,11 @@ O `env:init` cria o arquivo `.env`, que **nunca** vai para o Git.
 
 ```powershell
 npm run db:up
+npm run db:migrate
 npm run dev
 ```
+
+O `db:migrate` aplica as migrações pendentes (é seguro rodar sempre; sem pendências, ele não faz nada). Para desfazer a última: `npm run db:rollback`.
 
 - Chat: **http://localhost:5173** (React com Vite: ao salvar um `.jsx` ou `.css`, a tela atualiza na hora, sem perder a conversa)
 - API: **http://localhost:8080/health** deve responder `"status":"ok"` e `"pgvector":true`.
@@ -104,13 +107,7 @@ Sem configurar nada, quem responde é o **MockProvider** (texto de teste). Para 
 npm test
 ```
 
-Para incluir o teste que conversa com o banco real (precisa do `npm run db:up` antes):
-
-```powershell
-$env:TEST_DATABASE_URL="postgres://acaia:acaia@localhost:5432/acaia"; npm test
-```
-
-No macOS/Linux: `TEST_DATABASE_URL=postgres://acaia:acaia@localhost:5432/acaia npm test`.
+Com o banco no ar (`npm run db:up`), os testes de banco rodam sozinhos: cada arquivo cria o seu próprio banco `acaia_test_*`, sem tocar nos seus dados. Com o banco desligado, esses testes são pulados e aparece um aviso.
 
 Build de produção do chat (o que vai para o ar na Fase 1):
 

@@ -128,3 +128,33 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 - **Problema encontrado:** deixando o Vite ler o `.env` da raiz (via `envDir` ou `loadEnv`), ele pega o `NODE_ENV=development` da API e o `vite build` gera o React **de desenvolvimento**: 441 KB em vez de 229 KB, mais lento e com avisos internos.
 - **Escolha:** `envDir: false` no Vite. O `vite.config.js` lê o `.env` com `util.parseEnv` do Node, que não tem efeitos colaterais, e usa só `WEB_PORT` e `VITE_API_BASE_URL`. Variáveis de ambiente reais, como as do CI, têm prioridade sobre o arquivo.
 - **Regra de segurança:** tudo que começa com `VITE_` vai parar no JavaScript público do navegador. **Nunca** dê esse prefixo a um segredo.
+
+---
+
+# Fase 1
+
+## D-015 — Banco em produção: Neon (plano gratuito) em vez de Cloud SQL
+**Fase 1 · aceita (substitui "Cloud SQL em produção" do CLAUDE.md §5.1/§5.2)**
+
+- **Contexto:** o Cloud SQL não tem plano gratuito. A menor instância (db-f1-micro) em São Paulo custa cerca de US$ 12–20/mês só de CPU, mesmo parada, e o Eduardo pediu custo zero.
+- **Escolha (Eduardo, 25/11/2026):** **Neon, plano gratuito**, região AWS São Paulo (`aws-sa-east-1`). Tem PostgreSQL com pgvector, 1 GB por projeto, 100 CU-hora/mês e escala até zero depois de 5 minutos parado.
+- **Portabilidade:** o código só usa PostgreSQL padrão (SQL puro nas migrações e `pg` na API). Voltar para o Cloud SQL é trocar a `DATABASE_URL` e rodar `npm run db:migrate`.
+- **Riscos aceitos:**
+  - a primeira consulta depois do banco "dormir" leva cerca de meio segundo a mais;
+  - o banco fica fora do Google Cloud (Cloud Run em `southamerica-east1` → AWS `sa-east-1`, ambos em São Paulo), com conexão sempre por TLS;
+  - os limites do plano gratuito podem mudar.
+- **Desenvolvimento:** continua o PostgreSQL 17 + pgvector do `docker compose`.
+
+## D-016 — Migrações com executor próprio em SQL puro (não `node-pg-migrate`)
+**Fase 1 · aceita**
+
+- **Contexto:** o `node-pg-migrate` 9 traz `glob` e `minimatch` em versões com alertas de segurança moderados (GHSA-3g3m-2fjr-6pw4, GHSA-g3hv-75wg-m249). A única correção sugerida pelo `npm audit` é voltar para a versão 7. No nosso uso o risco é baixo, porque os padrões de arquivo são nossos, mas o audit ficaria sempre vermelho.
+- **Escolha:** `apps/api/src/db/migrate.js`, com ≈ 130 linhas e zero dependências:
+  - arquivos `migrations/NNNN_descricao.sql` com as seções `-- migrate:up` e `-- migrate:down`;
+  - tabela `schema_migrations` registra o que foi aplicado;
+  - **cada migração roda numa transação** (ou entra inteira, ou nada);
+  - **trava** (`pg_advisory_lock`) contra dois deploys migrando ao mesmo tempo;
+  - recusa migrações fora de ordem ou arquivos aplicados que sumiram.
+- **Comandos:** `npm run db:migrate` e `npm run db:rollback [-- N]`. Em produção, o deploy roda `db:migrate` antes de publicar a nova versão (F1.6).
+- **Regra:** uma migração já aplicada em produção **nunca** é editada. Para corrigir, cria-se uma nova.
+- **Testes:** cada arquivo de teste cria o próprio banco `acaia_test_*` no PostgreSQL do compose. Sem banco, esses testes são pulados com aviso; com `REQUIRE_TEST_DB=1` (no CI), eles falham.
