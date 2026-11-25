@@ -34,22 +34,53 @@ function pipeWithPrefix(stream, out, prefix) {
   });
 }
 
+/**
+ * Stops a child and everything it started (on Windows, killing npm alone would leave node running).
+ * @param {import('node:child_process').ChildProcess} child
+ */
+function stop(child) {
+  if (child.exitCode !== null || child.pid === undefined) return;
+  if (isWindows) {
+    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGTERM'); // negative pid = the child's whole process group
+  } catch {
+    child.kill('SIGTERM');
+  }
+}
+
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
-  for (const child of children) {
-    if (child.exitCode === null) child.kill();
+  for (const child of children) stop(child);
+  setTimeout(() => process.exit(code), 1000).unref();
+}
+
+/**
+ * Runs `npm run dev -w <workspace>`. When started through npm, `npm_execpath` points to npm's
+ * own script, so we run it with the current node binary: no shell needed on any OS.
+ * @param {string} workspace
+ */
+function spawnDev(workspace) {
+  const options = /** @type {const} */ ({
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, FORCE_COLOR: '1' },
+    // On macOS/Linux, give each app its own process group so stop() can end npm and node together.
+    // (On Windows, `detached` would open a new console window; taskkill /T handles the tree instead.)
+    detached: !isWindows,
+  });
+  const npmCli = process.env.npm_execpath;
+  if (npmCli && /\.(c|m)?js$/.test(npmCli)) {
+    return spawn(process.execPath, [npmCli, 'run', 'dev', '-w', workspace], options);
   }
-  setTimeout(() => process.exit(code), 500).unref();
+  // Fallback (script started with plain `node`): npm is a .cmd file on Windows and needs a shell.
+  return spawn(`npm run dev -w ${workspace}`, { ...options, shell: true });
 }
 
 for (const app of apps) {
-  // On Windows, npm is a .cmd file and needs a shell to run.
-  const child = spawn('npm', ['run', 'dev', '-w', app.workspace], {
-    shell: isWindows,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, FORCE_COLOR: '1' },
-  });
+  const child = spawnDev(app.workspace);
   const prefix = `${app.color}[${app.name}]${reset}`;
   pipeWithPrefix(child.stdout, process.stdout, prefix);
   pipeWithPrefix(child.stderr, process.stderr, prefix);

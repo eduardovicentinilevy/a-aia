@@ -9,7 +9,7 @@ function defaultReply(messages) {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   const excerpt = lastUser.length > 200 ? `${lastUser.slice(0, 200)}…` : lastUser;
   return (
-    'Oi! Eu sou a AçaIA em **modo de teste** (MockProvider): nenhum modelo de verdade está respondendo agora. ' +
+    'Oi! Eu sou a AçaIA em modo de teste (MockProvider): nenhum modelo de verdade está respondendo agora. ' +
     `Você escreveu: "${excerpt}". ` +
     'Para conversar com um modelo real, configure o Pro no arquivo .env (veja docs/RUNBOOK.md).'
   );
