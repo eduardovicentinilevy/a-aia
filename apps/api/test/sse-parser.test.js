@@ -62,7 +62,7 @@ describe('parseSSE', () => {
 
   it('is identical to the copy used by the web app', () => {
     const api = readFileSync(new URL('../src/lib/sse-parser.js', import.meta.url), 'utf8');
-    const web = readFileSync(new URL('../../web/public/js/sse-parser.js', import.meta.url), 'utf8');
+    const web = readFileSync(new URL('../../web/src/lib/sse-parser.js', import.meta.url), 'utf8');
     expect(web).toBe(api);
   });
 });

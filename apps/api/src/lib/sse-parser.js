@@ -1,6 +1,6 @@
 // Server-Sent Events parser for fetch() response bodies.
 // Works in Node.js and in the browser (only uses ReadableStream and TextDecoder).
-// KEEP IN SYNC: apps/web/public/js/sse-parser.js must be an identical copy
+// KEEP IN SYNC: apps/web/src/lib/sse-parser.js must be an identical copy
 // (a test in apps/api/test/sse-parser.test.js enforces this).
 
 /**
