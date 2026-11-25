@@ -83,7 +83,7 @@ describe('conversations', () => {
   it('creates and lists conversations', async () => {
     const { app } = buildApp();
     const created = await request(app).post('/conversations').send({}).expect(201);
-    expect(created.body).toMatchObject({ title: 'Nova conversa', userId: 'local-dev' });
+    expect(created.body).toMatchObject({ title: 'Nova conversa', userId: expect.stringMatching(/^[0-9a-f-]{36}$/) });
     const list = await request(app).get('/conversations').expect(200);
     expect(list.body.conversations.map((c) => c.id)).toEqual([created.body.id]);
   });
@@ -99,6 +99,25 @@ describe('conversations', () => {
     await request(app).get('/conversations/00000000-0000-4000-8000-000000000000/messages').expect(404);
     const res = await request(app).get('/conversations/not-a-uuid/messages').expect(404);
     expect(res.body.error).toEqual({ code: 'not_found', message: 'Conversa não encontrada.' });
+  });
+
+  it('renames a conversation (PATCH) and validates the title', async () => {
+    const { app } = buildApp();
+    const { body: conversation } = await request(app).post('/conversations').send({});
+    const renamed = await request(app).patch(`/conversations/${conversation.id}`).send({ title: '  Estudo de SQL  ' }).expect(200);
+    expect(renamed.body).toMatchObject({ id: conversation.id, title: 'Estudo de SQL' });
+    const empty = await request(app).patch(`/conversations/${conversation.id}`).send({ title: ' ' }).expect(400);
+    expect(empty.body.error.issues[0].message).toBe('O título está vazio.');
+    await request(app).patch('/conversations/00000000-0000-4000-8000-000000000000').send({ title: 'x' }).expect(404);
+  });
+
+  it('deletes a conversation (DELETE) and its history', async () => {
+    const { app } = buildApp();
+    const { body: conversation } = await request(app).post('/conversations').send({});
+    await request(app).delete(`/conversations/${conversation.id}`).expect(204);
+    await request(app).get(`/conversations/${conversation.id}/messages`).expect(404);
+    await request(app).delete(`/conversations/${conversation.id}`).expect(404);
+    await request(app).delete('/conversations/not-a-uuid').expect(404);
   });
 
   it('returns 404 JSON for unknown routes', async () => {

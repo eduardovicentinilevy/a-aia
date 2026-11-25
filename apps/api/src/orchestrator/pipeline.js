@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
-import { DEFAULT_TITLE } from '../db/memory-store.js';
+import { DEFAULT_TITLE } from '../db/store.js';
 import { buildContext } from './context.js';
 
 /** Phase 0 has a single model tier; the real router arrives in Phase 4. */
@@ -37,7 +37,7 @@ function titleFrom(content) {
  * Moderation, routing, RAG and web search are added in later phases.
  *
  * @param {object} deps
- * @param {import('../db/memory-store.js').ConversationStore} deps.store
+ * @param {import('../db/store.js').Store} deps.store
  * @param {import('../providers/model/types.js').ModelProvider} deps.proProvider
  * @param {string} deps.systemPrompt
  * @param {string} deps.promptVersion

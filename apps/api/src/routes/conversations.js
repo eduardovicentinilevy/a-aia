@@ -3,19 +3,21 @@ import { z } from 'zod';
 import { openEventStream } from '../lib/sse.js';
 import { notFound } from '../middleware/errors.js';
 
-const CreateConversationBody = z.strictObject({
-  title: z.string().trim().min(1).max(120).optional(),
-});
+const Title = z.string().trim().min(1, 'O título está vazio.').max(120, 'O título passou de 120 caracteres.');
+
+const CreateConversationBody = z.strictObject({ title: Title.optional() });
+
+const RenameConversationBody = z.strictObject({ title: Title });
 
 const SendMessageBody = z.strictObject({
   content: z.string().trim().min(1, 'A mensagem está vazia.').max(8000, 'A mensagem passou de 8000 caracteres.'),
 });
 
 /**
- * Conversation routes. Phase 0: create, list, read history and send a message (SSE).
- * PATCH/DELETE arrive in Phase 1 together with the PostgreSQL store.
+ * Conversation routes: CRUD, history and sending a message (answer streamed as SSE).
+ * Every route only sees the conversations of the logged-in user (req.user.id).
  * @param {object} deps
- * @param {import('../db/memory-store.js').ConversationStore} deps.store
+ * @param {import('../db/store.js').Store} deps.store
  * @param {ReturnType<typeof import('../orchestrator/pipeline.js').createChatPipeline>} deps.pipeline
  * @param {import('../lib/logger.js').Logger} deps.logger
  */
@@ -41,6 +43,20 @@ export function createConversationsRouter({ store, pipeline, logger }) {
 
   router.get('/', async (req, res) => {
     res.json({ conversations: await store.listConversations(/** @type {any} */ (req).user.id) });
+  });
+
+  router.patch('/:id', async (req, res) => {
+    const body = RenameConversationBody.parse(req.body ?? {});
+    const conversation = await findOwnedConversation(req);
+    await store.updateConversation(conversation.id, { title: body.title });
+    res.json(await store.getConversation(conversation.id, /** @type {any} */ (req).user.id));
+  });
+
+  router.delete('/:id', async (req, res) => {
+    const id = z.uuid().safeParse(req.params.id);
+    const deleted = id.success && (await store.deleteConversation(id.data, /** @type {any} */ (req).user.id));
+    if (!deleted) throw notFound('Conversa não encontrada.');
+    res.status(204).end();
   });
 
   router.get('/:id/messages', async (req, res) => {

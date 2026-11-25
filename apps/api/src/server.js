@@ -2,7 +2,9 @@ import pkg from '../package.json' with { type: 'json' };
 import { createApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { createMemoryStore } from './db/memory-store.js';
+import { pendingMigrations } from './db/migrate.js';
 import { checkDatabase, createPool } from './db/pool.js';
+import { createPostgresStore } from './db/postgres-store.js';
 import { createLogger } from './lib/logger.js';
 import { createChatPipeline } from './orchestrator/pipeline.js';
 import { loadSystemPrompt, SYSTEM_PROMPT_VERSION } from './prompts/index.js';
@@ -27,7 +29,17 @@ if (config.nodeEnv === 'production') {
 
 const logger = createLogger({ level: config.logLevel });
 const pool = config.databaseUrl ? createPool(config.databaseUrl, logger) : null;
-const store = createMemoryStore();
+const store = pool ? createPostgresStore(pool) : createMemoryStore();
+
+if (pool) {
+  // Friendly reminder instead of confusing SQL errors later ("relation users does not exist").
+  pendingMigrations(pool).then((pending) => {
+    if (pending === null) logger.warn('db_unreachable', { hint: 'Banco fora do ar? Rode: npm run db:up' });
+    else if (pending.length > 0) logger.warn('db_migrations_pending', { pending, hint: 'Rode: npm run db:migrate' });
+  });
+} else {
+  logger.warn('db_not_configured', { hint: 'DATABASE_URL vazio: usando memória (os dados somem ao reiniciar).' });
+}
 const proProvider = createProProvider(config.pro);
 const pipeline = createChatPipeline({
   store,

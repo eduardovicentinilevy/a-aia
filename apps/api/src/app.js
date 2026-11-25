@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import { devUser } from './middleware/dev-user.js';
+import { createDevUserMiddleware } from './middleware/dev-user.js';
 import { createErrorHandler, notFoundHandler } from './middleware/errors.js';
 import { requestLogger } from './middleware/request-log.js';
 import { createConversationsRouter } from './routes/conversations.js';
@@ -16,7 +16,7 @@ export const BODY_LIMIT = '16kb';
  * @param {object} deps
  * @param {Pick<import('./config.js').AppConfig, 'corsOrigins'>} deps.config
  * @param {import('./lib/logger.js').Logger} deps.logger
- * @param {import('./db/memory-store.js').ConversationStore} deps.store
+ * @param {import('./db/store.js').Store} deps.store
  * @param {ReturnType<typeof import('./orchestrator/pipeline.js').createChatPipeline>} deps.pipeline
  * @param {() => Promise<import('./db/pool.js').DatabaseStatus>} deps.checkDb
  * @param {string} deps.version
@@ -37,7 +37,7 @@ export function createApp({ config, logger, store, pipeline, checkDb, version })
   app.use(requestLogger(logger));
 
   app.use('/health', createHealthRouter({ checkDb, version }));
-  app.use('/conversations', devUser, createConversationsRouter({ store, pipeline, logger }));
+  app.use('/conversations', createDevUserMiddleware(store), createConversationsRouter({ store, pipeline, logger }));
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger));
