@@ -158,3 +158,23 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 - **Comandos:** `npm run db:migrate` e `npm run db:rollback [-- N]`. Em produção, o deploy roda `db:migrate` antes de publicar a nova versão (F1.6).
 - **Regra:** uma migração já aplicada em produção **nunca** é editada. Para corrigir, cria-se uma nova.
 - **Testes:** cada arquivo de teste cria o próprio banco `acaia_test_*` no PostgreSQL do compose. Sem banco, esses testes são pulados com aviso; com `REQUIRE_TEST_DB=1` (no CI), eles falham.
+
+## D-017 — Validar o token do Firebase com `jose` (não `firebase-admin`)
+**Fase 1 · aceita**
+
+- **Contexto:** a API precisa verificar o ID token do Firebase em cada requisição.
+- **Escolha:** `jose` 6, sem dependências. `middleware/auth.js` aplica as verificações que a documentação do Firebase manda fazer:
+  - assinatura RS256 com uma das chaves públicas do Google (JWKS, em cache);
+  - `iss = https://securetoken.google.com/<projeto>` e `aud = <projeto>`;
+  - `exp` no futuro, `iat` e `auth_time` no passado, e `sub` (o UID) preenchido.
+- **Por que não `firebase-admin`:** ele traz dezenas de dependências (gRPC, google-auth-library...) para usarmos só `verifyIdToken`. A única coisa que perdemos é a checagem de token revogado (`checkRevoked`), que exige credencial de administrador. No MVP, um token roubado vale no máximo 1 hora.
+- **Desempenho:** a linha do usuário é criada no primeiro acesso (`upsertUser`) e fica em cache por 10 minutos. Não há uma escrita no banco por requisição.
+- **Desenvolvimento:** com `FIREBASE_PROJECT_ID` vazio, todos são o usuário "Dev local", sem precisar do Firebase. Em produção, a configuração **exige** o projeto Firebase.
+
+## D-018 — Lista de convidados (`ALLOWED_EMAILS`) antes da lista de espera
+**Fase 1 · aceita**
+
+- **Contexto:** a URL da Fase 1 é pública. Sem restrição, qualquer pessoa criaria conta e gastaria a cota gratuita do Gemini, cujos termos também não servem para dados de terceiros (D-004).
+- **Escolha:** variável nova `ALLOWED_EMAILS` (admins de `ADMIN_EMAILS` entram sempre). Só passa quem tem **e-mail verificado** e está na lista. A verificação importa: no cadastro por e-mail e senha, qualquer um pode digitar o endereço de outra pessoa, mas só o dono confirma pelo link.
+- **Produção** exige a lista preenchida. Vazia, ela libera todos, o que só é permitido em desenvolvimento.
+- **Fase 6:** a lista de espera e os convites substituem a variável por uma tabela.
