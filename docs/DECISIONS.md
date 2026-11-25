@@ -178,3 +178,32 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 - **Escolha:** variável nova `ALLOWED_EMAILS` (admins de `ADMIN_EMAILS` entram sempre). Só passa quem tem **e-mail verificado** e está na lista. A verificação importa: no cadastro por e-mail e senha, qualquer um pode digitar o endereço de outra pessoa, mas só o dono confirma pelo link.
 - **Produção** exige a lista preenchida. Vazia, ela libera todos, o que só é permitido em desenvolvimento.
 - **Fase 6:** a lista de espera e os convites substituem a variável por uma tabela.
+
+## D-019 — Limites de uso, custo e rate limit
+**Fase 1 · aceita**
+
+- **Contagem de tokens:** o adaptador pede `stream_options.include_usage` (Gemini e vLLM aceitam). Se o provedor não informar, por exemplo numa resposta interrompida, estimamos ≈ 4 caracteres por token.
+- **Custo:** `PRO_COST_INPUT_BRL_PER_1M` e `PRO_COST_OUTPUT_BRL_PER_1M`. Com 0, que é o plano gratuito, o custo registrado fica zero.
+- **Onde a checagem acontece:** os limites são verificados **antes** de abrir o streaming, então voltam como um erro JSON normal:
+  - limite diário por usuário (`DAILY_TOKEN_LIMIT_PER_USER`, dia de São Paulo) → **429** `daily_limit_reached`;
+  - orçamento do mês para todos (`MONTHLY_BUDGET_BRL`) → **503** `monthly_budget_reached`;
+  - 0 desliga o limite correspondente.
+- **Rate limit** (`express-rate-limit` 8, 2 dependências pequenas):
+  - 120 requisições/min por IP em todas as rotas, menos `/health`;
+  - 15 mensagens/min por usuário logado, porque cada mensagem custa uma chamada ao modelo.
+  - Os contadores ficam na memória de cada instância. Com no máximo 2 instâncias, o limite real é até o dobro. Em produção, `trust proxy = 1` faz `req.ip` ser o IP real do cliente atrás do front-end do Google.
+- **Quando o orçamento acabar, a Fase 4 muda o comportamento:** o §5.7 manda forçar o Copinho. Por enquanto, como só existe o Pro, a API recusa.
+
+## D-020 — Moderação básica por lista de padrões em PT-BR
+**Fase 1 · aceita (provisória até a Fase 5)**
+
+- **Escolha:** `ModerationProvider` com duas implementações, `keyword` (padrão) e `mock`, escolhidas por `MODERATION_PROVIDER`.
+  - A lista é **curta e de alta precisão**: abuso sexual infantil, fabricação de armas ou explosivos e síntese de drogas pesadas. O texto é normalizado (minúsculas, sem acentos).
+  - Contextos de proteção ("como denunciar", "como proteger") e usos comuns ("bomba de chocolate", "bomba d'água") passam.
+- **Autolesão não é bloqueada de propósito:** a mensagem vai para o modelo, que responde com acolhimento e indica o CVV (188), como manda o system prompt.
+- **Entrada bloqueada:**
+  - recusa educada salva como resposta (`route_reason = moderation_blocked`);
+  - evento em `moderation_events`;
+  - nenhuma chamada ao modelo e nenhum custo.
+- **Saída reprovada:** checada no fim (MVP). O evento `done` leva `replacement`, o chat troca o texto exibido, e **só o aviso é salvo** no banco.
+- **Limite conhecido:** uma lista de padrões é fácil de contornar. Ela não é a defesa principal: o system prompt e a segurança do próprio modelo fazem a maior parte. A Fase 5 traz um classificador de verdade e as baterias de jailbreak e prompt injection.
