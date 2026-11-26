@@ -9,7 +9,7 @@
 import pg from 'pg';
 import { migrate } from '../../src/db/migrate.js';
 
-const SERVER_URL = process.env.TEST_DATABASE_URL ?? 'postgres://acaia:acaia@127.0.0.1:5433/acaia';
+const SERVER_URL = process.env.TEST_DATABASE_URL ?? 'postgres://acaia:acaia@127.0.0.1:25432/acaia';
 
 /** @param {string} url @param {string} database */
 function withDatabase(url, database) {

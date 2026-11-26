@@ -18,7 +18,7 @@ describe('checkDatabase', () => {
 
 describe('databaseHint', () => {
   it('explains the "role does not exist" case (another PostgreSQL on the machine)', () => {
-    expect(databaseHint('28000')).toContain('127.0.0.1:5433');
+    expect(databaseHint('28000')).toContain('127.0.0.1:25432');
     expect(databaseHint('ECONNREFUSED')).toContain('npm run db:up');
     expect(databaseHint('XX999')).toContain('DATABASE_URL');
   });

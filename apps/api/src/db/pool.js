@@ -59,7 +59,7 @@ export function databaseHint(code) {
       return 'Banco fora do ar? Rode: npm run db:up (e confira a porta do DATABASE_URL).';
     case '28000': // role does not exist
     case '28P01': // wrong password
-      return 'Usuário ou senha recusados. Se você tem um PostgreSQL instalado no computador, o DATABASE_URL pode estar apontando para ele: use postgres://acaia:acaia@127.0.0.1:5433/acaia (banco do Docker).';
+      return 'Usuário ou senha recusados. Se você tem um PostgreSQL instalado no computador, o DATABASE_URL pode estar apontando para ele: use postgres://acaia:acaia@127.0.0.1:25432/acaia (banco do Docker).';
     case '3D000': // database does not exist
       return 'O banco do DATABASE_URL não existe. Confira o nome no final da URL.';
     case 'ENOTFOUND':

@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url';
 export const UPGRADES = [
   {
     key: 'DATABASE_URL',
-    from: ['postgres://acaia:acaia@localhost:5432/acaia'],
-    to: 'postgres://acaia:acaia@127.0.0.1:5433/acaia',
-    why: 'o banco do Docker agora usa a porta 5433 (a 5432 costuma ser de um PostgreSQL instalado no computador)',
+    // 5432: default of the first versions; 5433: second attempt (often a 2nd PostgreSQL install).
+    from: ['postgres://acaia:acaia@localhost:5432/acaia', 'postgres://acaia:acaia@127.0.0.1:5433/acaia'],
+    to: 'postgres://acaia:acaia@127.0.0.1:25432/acaia',
+    why: 'o banco do Docker agora usa a porta 25432 (5432 e 5433 costumam ser de PostgreSQL instalado no computador)',
   },
 ];
 

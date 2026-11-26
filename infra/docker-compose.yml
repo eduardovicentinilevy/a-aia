@@ -10,9 +10,10 @@ services:
       POSTGRES_PASSWORD: acaia
       POSTGRES_DB: acaia
     ports:
-      # Host port 5433 (not the default 5432) so it never clashes with a PostgreSQL installed
-      # directly on the machine. Bound to 127.0.0.1: not reachable from your network.
-      - "127.0.0.1:5433:5432"
+      # Host port 25432, not 5432/5433: those are often taken by a PostgreSQL installed directly on
+      # the machine. Below 49152 on purpose (Windows reserves higher ports for Hyper-V/WSL).
+      # Bound to 127.0.0.1: not reachable from your network.
+      - "127.0.0.1:25432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

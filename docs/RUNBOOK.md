@@ -127,8 +127,8 @@ O `build` gera `apps/web/dist/` e o `preview` serve esse resultado em http://loc
 | `npm.ps1 não pode ser carregado` | Política de execução do PowerShell | Seção 1.6 |
 | `Cannot find package '…'` ou *"Faltam dependências instaladas"* | `git pull` trouxe pacotes novos | `npm install` |
 | `db:up` falha com *"cannot connect to the Docker daemon"* / *"pipe/dockerDesktopLinuxEngine"* | Docker Desktop fechado | Abra o Docker Desktop e espere ficar verde |
-| API mostra `role "acaia" não existe` ou `password authentication failed` | O `DATABASE_URL` aponta para **outro** PostgreSQL, instalado no Windows | Use `DATABASE_URL=postgres://acaia:acaia@127.0.0.1:5433/acaia` (porta **5433**, endereço `127.0.0.1`) e rode `npm run db:up` |
-| `db:up` falha com *"port is already allocated"* (5433) | Outro programa usa a porta 5433 | Troque a porta no `infra/docker-compose.yml` **e** no `DATABASE_URL` |
+| API mostra `role "acaia" não existe` ou `password authentication failed` | O `DATABASE_URL` aponta para **outro** PostgreSQL, instalado no Windows | Use `DATABASE_URL=postgres://acaia:acaia@127.0.0.1:25432/acaia` (porta **25432**, endereço `127.0.0.1`) e rode `npm run db:up` |
+| `db:up` falha com *"port is already allocated"* | Outro programa usa a porta 25432 (raro) | Veja quem usa com `netstat -ano \| findstr :25432`; ou troque a porta no `infra/docker-compose.yml` **e** no `DATABASE_URL` |
 | `/health` mostra `"status":"degraded"` | Banco fora do ar | `npm run db:up` e confira o Docker Desktop |
 | `npm run dev` diz *"Configuração inválida (.env ou variáveis de ambiente)"* | Variável faltando ou com valor inválido | A mensagem lista quais; confira o `.env` |
 | O chat mostra *"Não consegui falar com a API"* | API parada ou em outra porta | Veja o terminal do `npm run dev` |
