@@ -283,3 +283,17 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 - **Descontaminação:** todo exemplo que repete uma sequência de 8 palavras de uma questão do ENEM, ou que é igual a uma pergunta de instruções ou segurança, é descartado. Sem isso, a nota da Fase 3 mediria memória, não melhora.
 - **Mistura:** duplicatas são removidas, e o autoral vence. 5% vão para validação, separados **antes** de repetir os autorais 3× no treino, para que nenhuma cópia caia na validação. O system prompt da AçaIA vai em cada exemplo, porque o Copinho será usado com ele.
 - **Formato de saída:** JSONL com `messages`, o formato de conversa do Hugging Face/TRL, pronto para o QLoRA da Fase 3. O `MANIFEST.md` registra contagens, licenças, descartes e o hash dos arquivos.
+
+## D-026 — Fontes da marca, servidas pelo próprio site
+**Repaginação visual · aceita**
+
+- **Pedido:** melhorar muito o visual do chat, mantendo React + CSS puro e o açaí como cor principal (D-013).
+- **Fonte do texto: Atkinson Hyperlegible Next** (`@fontsource-variable/atkinson-hyperlegible-next`, **OFL-1.1**).
+  - Feita pelo Braille Institute para ser fácil de ler, com letras que não se confundem.
+  - O motivo principal: o **"I" maiúsculo tem serifa**. Na primeira tentativa (Plus Jakarta Sans), "AçaIA" aparecia como "Açala", porque o "I" e o "l" eram iguais. Nem ela nem o pacote da Inter trazem um "I" alternativo.
+- **Fonte de código: JetBrains Mono** (`@fontsource-variable/jetbrains-mono`, **OFL-1.1**).
+- **Por que pacotes npm e não Google Fonts:**
+  - os arquivos saem do nosso próprio domínio, sem mandar o IP de quem usa para terceiros (privacidade/LGPD);
+  - não há outra origem para liberar no CSP;
+  - as versões ficam travadas no `package-lock.json`.
+- **Custo:** são só arquivos `.woff2` e CSS, sem JavaScript, e o `npm audit` está limpo. O navegador baixa apenas os subconjuntos usados (`unicode-range`): para português, a fonte do texto e a de código têm cerca de 30 a 40 KB cada uma, e a de código só é baixada quando aparece código.
