@@ -117,3 +117,13 @@ def test_paces_requests_per_minute():
     finally:
         provider.close()
     assert sleeps == [pytest.approx(1.5)]  # 2 s interval − 0.5 s already elapsed
+
+
+def test_extra_body_is_merged_into_the_request():
+    provider = FakeProvider([(200, OK, {})])
+    try:
+        client, _ = make_client(provider, extra_body={"chat_template_kwargs": {"enable_thinking": False}})
+        client.complete([{"role": "user", "content": "oi"}])
+    finally:
+        provider.close()
+    assert provider.requests[0]["body"]["chat_template_kwargs"] == {"enable_thinking": False}

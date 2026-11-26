@@ -73,6 +73,7 @@ class OpenAICompatibleClient:
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "stream": False,
+            **(self.config.extra_body or {}),
         }
         last_error: ModelError | None = None
         for attempt in range(self.max_attempts):
