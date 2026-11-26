@@ -268,3 +268,18 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
 - **Escolha:** 179 questões (180 menos 1 anulada), distribuídas em linguagens 45, humanas 45, natureza 44 e matemática 45. O commit da origem fica fixado no código. A conversão é reprodutível (`python ml/eval/build_sets.py enem`), e a cópia convertida é versionada com a atribuição em `ml/eval/sets/LICENSES.md`.
 - **Precisão:** com cerca de 180 questões, o intervalo de confiança de 95% da acurácia é de **±7 pontos**. Uma diferença de 10 pontos é distinguível; uma de 3 não é.
 - **Limite conhecido:** o ENEM 2024 pode ter entrado nos dados de treino de modelos lançados em 2025–2026 (contaminação), o que infla a nota absoluta. A comparação **Copinho × modelo base**, que é o critério da Fase 3, usa o mesmo conjunto nos dois modelos, então continua justa.
+
+## D-025 — Dataset de ajuste fino: fontes, descontaminação e rascunhos revisados
+**Fase 2 · aceita**
+
+- **Fontes públicas:** só conjuntos **escritos por pessoas** e com licença comercial: **OpenAssistant oasst2** (pt-BR, Apache-2.0) e **Aya Dataset** (português, Apache-2.0).
+  - Do oasst2, usamos o ramo melhor avaliado de cada conversa.
+  - Ficam fora traduções ou gerações de GPT, Claude ou Gemini (D-023) e licenças NC.
+  - `fetch_sources.py` confere a licença no Hugging Face antes de baixar e recusa a fonte se ela mudou.
+  - A dependência é opcional: `datasets` + `huggingface_hub`, em `ml/requirements-data.txt`. Só serve para baixar.
+- **Exemplos autorais (≥ 300)** em Markdown (`ml/data/autorais/*.md`), com conversas de várias falas e categorias definidas no `ml/data/README.md`.
+  - O `draft.py` gera **rascunhos** com um modelo aberto (`judge_allowed = true`), marcados `<!-- rascunho -->`.
+  - O build **ignora rascunhos** até alguém revisar e apagar a marca.
+- **Descontaminação:** todo exemplo que repete uma sequência de 8 palavras de uma questão do ENEM, ou que é igual a uma pergunta de instruções ou segurança, é descartado. Sem isso, a nota da Fase 3 mediria memória, não melhora.
+- **Mistura:** duplicatas são removidas, e o autoral vence. 5% vão para validação, separados **antes** de repetir os autorais 3× no treino, para que nenhuma cópia caia na validação. O system prompt da AçaIA vai em cada exemplo, porque o Copinho será usado com ele.
+- **Formato de saída:** JSONL com `messages`, o formato de conversa do Hugging Face/TRL, pronto para o QLoRA da Fase 3. O `MANIFEST.md` registra contagens, licenças, descartes e o hash dos arquivos.
