@@ -152,13 +152,15 @@
 - Harness ponta a ponta: com o mock e com o **Gemini de verdade**, que respondeu no formato `Resposta: X`.
 - Juiz ponta a ponta com um juiz mock; a trava impede o Pro de julgar ou gerar rascunhos.
 - Conversão do ENEM conferida: 179 questões, nenhuma imagem sem descrição, e a licença MIT idêntica à original.
-- **Linha de base do Pro no ENEM 2024: rodando** (resultado em `ml/eval/reports/pro.md`).
+- **Linha de base do Pro no ENEM 2024: 91,6%** (164/179; IC 95% 86,6%–94,9%), relatório em `ml/eval/reports/pro.md`.
+  - Por área: humanas 97,8%, linguagens 91,1%, matemática 88,9%, natureza 88,6%.
+  - 2 respostas sem letra identificável (contam como erro).
 
 ### Linha de base (preencher)
 
 | Modelo | Licença (verificada) | ENEM 2024 | Instruções (0–100) | Recusa correta | Recusa indevida | Nota AçaIA |
 | --- | --- | --- | --- | --- | --- | --- |
-| Pro (`gemini-3.5-flash-lite`) | proprietária | (rodando) | — | — | — | — |
+| Pro (`gemini-3.5-flash-lite`) | proprietária | 91,6% (164/179) | — | — | — | — |
 | Qwen3.5-4B | a confirmar no Kaggle | — | — | — | — | — |
 | Gemma 4 E4B | a confirmar no Kaggle | — | — | — | — | — |
 | Tucano2-qwen-3.7B | a confirmar no Kaggle | — | — | — | — | — |
