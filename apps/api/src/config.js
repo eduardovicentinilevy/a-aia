@@ -70,7 +70,7 @@ function parseEmails(list) {
 export class ConfigError extends Error {
   /** @param {string[]} problems */
   constructor(problems) {
-    super(`Configuração inválida no .env:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
+    super(`Configuração inválida (.env ou variáveis de ambiente):\n${problems.map((p) => `  - ${p}`).join('\n')}`);
     this.name = 'ConfigError';
     this.problems = problems;
   }
