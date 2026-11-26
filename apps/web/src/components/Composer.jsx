@@ -3,7 +3,9 @@ import { SendIcon, StopIcon } from './Icons.jsx';
 import './Composer.css';
 
 const MAX_LENGTH = 8000;
-const MAX_HEIGHT_PX = 200;
+const MAX_HEIGHT_PX = 220;
+/** The character counter only shows up close to the limit. */
+const COUNTER_FROM = 6000;
 
 /**
  * Message box. Enter sends, Shift+Enter breaks the line. While an answer streams,
@@ -42,7 +44,7 @@ export default function Composer({ onSend, onStop, isStreaming }) {
         submit();
       }}
     >
-      <div className="composer__box">
+      <div className={`composer__box${isStreaming ? ' composer__box--busy' : ''}`}>
         <label htmlFor="composer-input" className="sr-only">
           Mensagem
         </label>
@@ -73,7 +75,18 @@ export default function Composer({ onSend, onStop, isStreaming }) {
           </button>
         )}
       </div>
-      <p className="composer__hint">A AçaIA pode errar. Confira informações importantes.</p>
+      <p className="composer__hint">
+        <span>A AçaIA pode errar. Confira informações importantes.</span>
+        {value.length >= COUNTER_FROM ? (
+          <span className={`composer__count${value.length >= MAX_LENGTH ? ' composer__count--full' : ''}`}>
+            {value.length.toLocaleString('pt-BR')} / {MAX_LENGTH.toLocaleString('pt-BR')}
+          </span>
+        ) : (
+          <span className="composer__keys">
+            <kbd>Enter</kbd> envia · <kbd>Shift</kbd> + <kbd>Enter</kbd> quebra linha
+          </span>
+        )}
+      </p>
     </form>
   );
 }

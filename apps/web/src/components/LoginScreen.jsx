@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { authErrorMessage, sendPasswordReset, signInWithEmail, signInWithGoogle, signUpWithEmail } from '../lib/auth.js';
 import AcaiLogo from './AcaiLogo.jsx';
-import { GoogleIcon } from './Icons.jsx';
+import { BoltIcon, FlagIcon, GoogleIcon, ShieldIcon } from './Icons.jsx';
 import './AuthScreens.css';
 
 /**
@@ -49,6 +49,35 @@ export default function LoginScreen() {
 
   return (
     <main className="auth">
+      <aside className="auth__hero" aria-hidden="true">
+        <AcaiLogo size={84} className="auth__hero-logo" />
+        <p className="auth__hero-title">
+          A IA brasileira,
+          <br />
+          <span className="gradient-text">rápida e sem enrolação.</span>
+        </p>
+        <ul className="auth__features">
+          <li>
+            <span>
+              <BoltIcon />
+            </span>
+            Respostas em tempo real, palavra por palavra
+          </li>
+          <li>
+            <span>
+              <FlagIcon />
+            </span>
+            Fala português do Brasil de verdade
+          </li>
+          <li>
+            <span>
+              <ShieldIcon />
+            </span>
+            Teste fechado, só para convidados
+          </li>
+        </ul>
+      </aside>
+
       <section className="auth__card" aria-labelledby="auth-title">
         <div className="auth__brand">
           <span className="auth__logo">

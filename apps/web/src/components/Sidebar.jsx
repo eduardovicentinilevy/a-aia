@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashIcon } from './Icons.jsx';
+import { groupConversations } from '../lib/format.js';
+import AcaiLogo from './AcaiLogo.jsx';
+import { ChatIcon, CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashIcon } from './Icons.jsx';
 import './Sidebar.css';
 
 /**
@@ -18,36 +20,54 @@ import './Sidebar.css';
  * }} props
  */
 export default function Sidebar({ open, onClose, conversations, activeId, onSelect, onNewChat, onRename, onDelete, usage }) {
+  // Not memoized: after midnight the next render already moves "Hoje" to "Ontem".
+  const groups = groupConversations(conversations, new Date());
   return (
     <>
       <div className={`sidebar__backdrop${open ? ' sidebar__backdrop--visible' : ''}`} onClick={onClose} aria-hidden="true" />
       <aside className={`sidebar${open ? ' sidebar--open' : ''}`} aria-label="Conversas">
         <div className="sidebar__top">
-          <button type="button" className="sidebar__new" onClick={onNewChat}>
-            <PlusIcon />
-            Nova conversa
-          </button>
+          <div className="sidebar__brand">
+            <span className="sidebar__logo">
+              <AcaiLogo size={30} />
+            </span>
+            <span className="sidebar__name">AçaIA</span>
+            <span className="sidebar__badge">Beta</span>
+          </div>
           <button type="button" className="sidebar__close" onClick={onClose} aria-label="Fechar lista de conversas">
             <CloseIcon />
           </button>
         </div>
 
-        <nav className="sidebar__list">
+        <button type="button" className="sidebar__new" onClick={onNewChat}>
+          <PlusIcon />
+          Nova conversa
+        </button>
+
+        <nav className="sidebar__list" aria-label="Histórico de conversas">
           {conversations.length === 0 ? (
-            <p className="sidebar__empty">Suas conversas aparecem aqui.</p>
+            <div className="sidebar__empty">
+              <ChatIcon />
+              <p>Suas conversas aparecem aqui.</p>
+            </div>
           ) : (
-            <ul>
-              {conversations.map((conversation) => (
-                <ConversationItem
-                  key={conversation.id}
-                  conversation={conversation}
-                  active={conversation.id === activeId}
-                  onSelect={onSelect}
-                  onRename={onRename}
-                  onDelete={onDelete}
-                />
-              ))}
-            </ul>
+            groups.map((group) => (
+              <section key={group.label} className="sidebar__group">
+                <h3 className="sidebar__group-title">{group.label}</h3>
+                <ul>
+                  {group.items.map((conversation) => (
+                    <ConversationItem
+                      key={conversation.id}
+                      conversation={conversation}
+                      active={conversation.id === activeId}
+                      onSelect={onSelect}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))
           )}
         </nav>
 
@@ -137,25 +157,22 @@ function ConversationItem({ conversation, active, onSelect, onRename, onDelete }
 function UsageMeter({ used, limit }) {
   const unlimited = limit === 0;
   const percent = unlimited ? 0 : Math.min(100, Math.round((used / limit) * 100));
-  const format = (n) => n.toLocaleString('pt-BR');
+  const format = (/** @type {number} */ n) => n.toLocaleString('pt-BR');
+  const level = percent >= 90 ? ' usage--high' : percent >= 70 ? ' usage--warn' : '';
   return (
-    <div className="usage" title="Tokens são pedaços de texto (≈ 4 letras) lidos e escritos pelo modelo.">
+    <div className={`usage${level}`} title="Tokens são pedaços de texto (≈ 4 letras) lidos e escritos pelo modelo.">
       <div className="usage__label">
-        <span>Uso hoje</span>
-        <span>{unlimited ? `${format(used)} tokens` : `${format(used)} / ${format(limit)}`}</span>
+        <span>Uso de hoje</span>
+        {!unlimited && <strong>{percent}%</strong>}
       </div>
       {!unlimited && (
-        <div
-          className={`usage__bar${percent >= 90 ? ' usage__bar--high' : ''}`}
-          role="progressbar"
-          aria-label="Uso de tokens hoje"
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
+        <div className="usage__bar" role="progressbar" aria-label="Uso de tokens hoje" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
           <span style={{ width: `${percent}%` }} />
         </div>
       )}
+      <p className="usage__detail">
+        {unlimited ? `${format(used)} tokens · sem limite` : `${format(used)} de ${format(limit)} tokens`}
+      </p>
     </div>
   );
 }

@@ -95,6 +95,105 @@ export function LogOutIcon() {
   );
 }
 
+export function ChevronIcon() {
+  return (
+    <svg {...iconProps} width={16} height={16}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function CopyIcon() {
+  return (
+    <svg {...iconProps} width={16} height={16}>
+      <rect x="9" y="9" width="12" height="12" rx="2.5" />
+      <path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5" />
+    </svg>
+  );
+}
+
+export function ArrowDownIcon() {
+  return (
+    <svg {...iconProps} width={18} height={18}>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </svg>
+  );
+}
+
+export function ChatIcon() {
+  return (
+    <svg {...iconProps} width={16} height={16}>
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
+    </svg>
+  );
+}
+
+export function LightbulbIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z" />
+    </svg>
+  );
+}
+
+export function BookIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      <path d="M9 7h7" />
+    </svg>
+  );
+}
+
+export function CodeIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="m16 18 6-6-6-6" />
+      <path d="m8 6-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function FeatherIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M20.2 12.2a6 6 0 0 0-8.5-8.5L5 10.5V19h8.5Z" />
+      <path d="M16 8 2 22" />
+      <path d="M17.5 15H9" />
+    </svg>
+  );
+}
+
+export function BoltIcon() {
+  return (
+    <svg {...iconProps} width={18} height={18}>
+      <path d="M13 2 4 14h7l-1 8 9-12h-7Z" />
+    </svg>
+  );
+}
+
+export function ShieldIcon() {
+  return (
+    <svg {...iconProps} width={18} height={18}>
+      <path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+export function FlagIcon() {
+  return (
+    <svg {...iconProps} width={18} height={18}>
+      <path d="M4 22V4" />
+      <path d="M4 4h13l-2 4 2 4H4" />
+    </svg>
+  );
+}
+
 /** Google "G" for the sign-in button (brand colors). */
 export function GoogleIcon() {
   return (

@@ -1,14 +1,70 @@
 .message-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.message-list__scroll {
   flex: 1;
   overflow-y: auto;
-  scrollbar-color: var(--acai-300) transparent;
+  scroll-padding-bottom: 24px;
 }
 
 .message-list__inner {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 24px 16px 8px;
+  padding: 32px 24px 40px;
+}
+
+/* Fades the last lines under the composer instead of cutting them */
+.message-list::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 28px;
+  background: linear-gradient(transparent, var(--color-bg));
+  pointer-events: none;
+}
+
+.message-list__end {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translate(-50%, 10px) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.25s var(--ease), background 0.15s;
+}
+
+.message-list__end--visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.message-list__end:hover {
+  background: var(--color-primary-soft);
+}
+
+@media (max-width: 600px) {
+  .message-list__inner {
+    gap: 22px;
+    padding: 20px 16px 32px;
+  }
 }

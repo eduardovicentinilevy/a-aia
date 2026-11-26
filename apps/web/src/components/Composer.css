@@ -1,66 +1,87 @@
 .composer {
-  padding: 8px 16px 10px;
+  position: relative;
+  z-index: 3;
+  flex: none;
+  width: 100%;
+  max-width: calc(var(--content-width) + 48px);
+  margin: 0 auto;
+  padding: 0 24px 16px;
 }
 
 .composer__box {
+  position: relative;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: 8px 8px 8px 18px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  gap: 10px;
+  padding: 10px 10px 10px 20px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-md);
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  backdrop-filter: saturate(1.6) blur(18px);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  transition: border-color 0.2s, box-shadow 0.25s;
 }
 
+/* Açaí glow around the box while typing */
 .composer__box:focus-within {
-  border-color: var(--color-primary);
+  border-color: var(--acai-400);
   box-shadow: var(--shadow-md), var(--focus-ring);
+}
+
+/* Animated gradient line on top while the answer streams */
+.composer__box--busy::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 24px;
+  left: 24px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--acai-400), var(--guarana-400), var(--acai-400), transparent);
+  background-size: 200% 100%;
+  animation: composer-flow 1.4s linear infinite;
+}
+
+@keyframes composer-flow {
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .composer__input {
   flex: 1;
-  min-height: 40px;
-  max-height: 200px;
-  padding: 8px 0;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
+  min-height: 44px;
+  max-height: 220px;
+  padding: 11px 0;
+  border: 0;
+  background: none;
+  font-size: 1rem;
   line-height: 1.5;
+  resize: none;
+  outline: none;
 }
 
 .composer__input::placeholder {
-  color: var(--color-text-muted);
-}
-
-/* The textarea already shows focus through .composer__box:focus-within */
-.composer__input:focus-visible {
-  outline: none;
+  color: var(--color-text-soft);
 }
 
 .composer__button {
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  transition:
-    background-color 0.15s ease,
-    transform 0.1s ease;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s, opacity 0.2s, filter 0.2s;
 }
 
 .composer__button:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  transform: translateY(-1px) scale(1.05);
 }
 
 .composer__button:active:not(:disabled) {
@@ -68,24 +89,61 @@
 }
 
 .composer__button:disabled {
-  background: var(--color-primary-soft);
-  color: var(--color-text-muted);
+  background: var(--color-surface-3);
+  color: var(--color-text-soft);
+  box-shadow: none;
 }
 
 .composer__button--stop {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-}
-
-.composer__button--stop:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-text);
+  color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .composer__hint {
-  margin: 8px 0 0;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 8px 0;
+  color: var(--color-text-soft);
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+}
+
+.composer__hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+}
+
+.composer__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.composer__count--full {
+  color: var(--color-danger);
+}
+
+@media (max-width: 600px) {
+  .composer {
+    padding: 0 12px 12px;
+  }
+
+  .composer__box {
+    padding-left: 16px;
+  }
+
+  .composer__hint {
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Phones have no Shift key hint to give */
+  .composer__keys {
+    display: none;
+  }
 }

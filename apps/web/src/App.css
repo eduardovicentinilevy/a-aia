@@ -1,51 +1,88 @@
 .app {
   display: flex;
-  flex-direction: column;
   height: 100dvh;
 }
 
-.app__body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
 .app__main {
+  position: relative;
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app__content {
+  flex: 1;
   min-height: 0; /* lets the message list scroll inside the flex column */
   display: flex;
   flex-direction: column;
 }
 
-.app__loading {
+.app__status {
   flex: 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
   color: var(--color-text-muted);
+  text-align: center;
 }
 
-.app__loading--error {
+.app__status--error {
   color: var(--color-danger);
+}
+
+.app__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: app-spin 0.8s linear infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* First paint while Firebase checks the session */
 .splash {
+  position: relative;
   height: 100dvh;
   display: grid;
   place-items: center;
-  background: var(--header-bg);
+  overflow: hidden;
+}
+
+.splash > * {
+  grid-area: 1 / 1;
+}
+
+.splash__halo {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--gradient-glow);
+  animation: splash-breathe 1.6s var(--ease) infinite;
 }
 
 .splash__logo {
-  padding: 16px;
-  border-radius: 999px;
-  background: var(--acai-50);
-  animation: splash-pulse 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 12px 24px rgb(46 10 63 / 0.35));
+  animation: splash-bounce 1.6s var(--ease) infinite;
 }
 
-@keyframes splash-pulse {
+@keyframes splash-breathe {
   50% {
-    transform: scale(1.08);
+    transform: scale(1.25);
+    opacity: 0.6;
+  }
+}
+
+@keyframes splash-bounce {
+  50% {
+    transform: translateY(-6px) scale(1.04);
   }
 }

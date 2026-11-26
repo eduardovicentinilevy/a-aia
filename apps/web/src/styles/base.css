@@ -12,16 +12,24 @@ body,
 }
 
 body {
-  background: var(--color-bg);
+  /* Two soft glows behind everything: açaí in a corner, palm leaf in the other. */
+  background:
+    radial-gradient(1100px 600px at 110% -10%, rgb(145 66 178 / 0.11), transparent 60%),
+    radial-gradient(800px 500px at -15% 115%, rgb(74 155 63 / 0.07), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.55;
+  font-size: 15.5px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button,
-textarea {
+textarea,
+input {
   font: inherit;
   color: inherit;
 }
@@ -44,6 +52,23 @@ button:disabled {
   color: var(--acai-950);
 }
 
+/* Thin, açaí-tinted scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--color-border-strong) padding-box;
+}
+
 /* Visible to screen readers only */
 .sr-only {
   position: absolute;
@@ -52,6 +77,14 @@ button:disabled {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Gradient text used by titles */
+.gradient-text {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
