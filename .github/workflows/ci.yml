@@ -53,3 +53,21 @@ jobs:
 
       - name: Build do chat (garante que compila)
         run: npm run build -w apps/web
+
+  ml:
+    name: Testes (harness de avaliação, Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Instalar pytest
+        run: pip install -r ml/requirements-dev.txt
+
+      - name: Testes do harness
+        run: python -m pytest ml
+
