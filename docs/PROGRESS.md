@@ -178,6 +178,34 @@
 
 ---
 
+## Repaginação visual do chat (pedido extra) · ✅ feita
+
+Todo o chat foi redesenhado, ainda em React + CSS puro e com o açaí como cor principal.
+
+- **Layout:**
+  - barra lateral de altura total, com a marca e as conversas agrupadas por data (Hoje, Ontem, Últimos 7 dias, Últimos 30 dias, Mais antigas);
+  - cabeçalho de vidro fosco, com o título da conversa;
+  - cartão de uso com cores de alerta a partir de 70% e de 90%.
+- **Tela inicial:** saudação pelo horário ("Boa tarde, Eduardo!"), logo flutuando e 4 cartões de sugestão com ícones.
+- **Mensagens:**
+  - a resposta da AçaIA fica sem balão, com um selo do modelo (Pro, Copinho ou Segurança);
+  - botão **Copiar resposta** e botão **Copiar** em cada bloco de código, com o nome da linguagem;
+  - Markdown mais caprichado (tabelas, citações e listas);
+  - durante o streaming, um cursor piscando e um halo no avatar.
+- **Leitura da conversa:** botão para voltar ao fim quando você rola para cima.
+- **Caixa de mensagem:** de vidro, com brilho de foco, atalhos de teclado e contador quando o texto se aproxima de 8.000 caracteres.
+- **Login:** fundo animado, painel de destaque em telas largas e cartão de vidro.
+- **Tema e fontes:**
+  - modo escuro revisado (logo mais claro e blocos de código destacados) e respeito a "reduzir movimento";
+  - fontes próprias da marca (D-026).
+- **Verificado:**
+  - 59 testes do web, incluindo o novo agrupamento por data, a saudação e o cabeçalho dos blocos de código (com teste de nome de linguagem malicioso);
+  - os 140 testes da API continuam passando;
+  - prints com Playwright em claro, escuro, celular e login;
+  - copiar código e resposta, e o botão "voltar ao fim", testados no navegador.
+
+---
+
 ## Fase 3 — AçaIA Copinho · ⏳ não iniciada
 ## Fase 4 — Orquestrador e RAG · ⏳ não iniciada
 ## Fase 5 — Segurança e polimento · ⏳ não iniciada
