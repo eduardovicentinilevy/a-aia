@@ -25,6 +25,8 @@ __pycache__/
 *.bin
 *.gguf
 ml/runs/**/checkpoints/
+# Raw model answers from the evaluation harness (reports in ml/eval/reports ARE committed)
+ml/eval/results/
 
 # Editors
 .vscode/*

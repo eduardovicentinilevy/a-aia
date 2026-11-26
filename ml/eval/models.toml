@@ -1,0 +1,63 @@
+# Models the evaluation harness can call: `python ml/eval/run.py --model <name>`.
+#
+# provider = "openai-compatible": any server with POST /chat/completions (Gemini, vLLM, Ollama...).
+#            "mock": fixed offline answers, to test the harness without a network.
+# api_key_env: name of the variable (in the root .env or the environment) holding the key.
+# requests_per_minute: pacing for free tiers (the client waits between calls).
+# judge_allowed: true ONLY for open-weight models whose license allows using their outputs to
+#   develop other models (Apache-2.0 / MIT). Never Gemini or Claude: their terms forbid using
+#   outputs to develop competing models (docs/DECISIONS.md D-023).
+
+[models.mock]
+provider = "mock"
+model = "mock"
+license = "—"
+notes = "Respostas fixas, sem rede. Serve para testar o harness."
+
+[models.pro]
+provider = "openai-compatible"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+model = "gemini-3.5-flash-lite"
+api_key_env = "PRO_API_KEY"
+requests_per_minute = 12
+max_tokens = 1024
+license = "Proprietário (Gemini API, plano gratuito)"
+notes = "AçaIA Pro de hoje. Só é MEDIDO: nunca juiz, nunca gera dados de treino."
+
+# --- Copinho candidates (Phase 2 baseline) --------------------------------------
+# Served by vLLM in the Kaggle notebook (ml/eval/notebooks) at localhost:8000.
+# The "model" value is vLLM's --served-model-name; the Hugging Face repo id is in the notebook.
+
+[models.qwen35_4b]
+provider = "openai-compatible"
+base_url = "http://localhost:8000/v1"
+model = "qwen35-4b"
+max_tokens = 1024
+license = "Apache-2.0 (confirmar no model card)"
+notes = "Qwen3.5 4B Instruct."
+
+[models.gemma4_e4b]
+provider = "openai-compatible"
+base_url = "http://localhost:8000/v1"
+model = "gemma4-e4b"
+max_tokens = 1024
+license = "Apache-2.0 (confirmar no model card)"
+notes = "Gemma 4 E4B instruction-tuned."
+
+[models.tucano2_3_7b]
+provider = "openai-compatible"
+base_url = "http://localhost:8000/v1"
+model = "tucano2-3.7b"
+max_tokens = 1024
+license = "Apache-2.0 (confirmar no model card)"
+notes = "Tucano2-qwen-3.7B-Instruct (modelo brasileiro, base Qwen)."
+
+# --- Judge -------------------------------------------------------------------------
+[models.juiz]
+provider = "openai-compatible"
+base_url = "http://localhost:8001/v1"
+model = "juiz"
+max_tokens = 512
+judge_allowed = true
+license = "Apache-2.0 (confirmar no model card)"
+notes = "Modelo aberto maior (ex.: Qwen 14B) servido no Kaggle na porta 8001."
