@@ -207,3 +207,21 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
   - nenhuma chamada ao modelo e nenhum custo.
 - **Saída reprovada:** checada no fim (MVP). O evento `done` leva `replacement`, o chat troca o texto exibido, e **só o aviso é salvo** no banco.
 - **Limite conhecido:** uma lista de padrões é fácil de contornar. Ela não é a defesa principal: o system prompt e a segurança do próprio modelo fazem a maior parte. A Fase 5 traz um classificador de verdade e as baterias de jailbreak e prompt injection.
+
+## D-021 — Frontend da Fase 1: login, Markdown seguro e dependências
+**Fase 1 · aceita**
+
+| Pacote | Versão | Motivo |
+| --- | --- | --- |
+| `@firebase/app` + `@firebase/auth` | 0.16 / 1.13 | Login com Google e com e-mail e senha. Usamos os **pacotes de login separados**, não o `firebase` completo, porque ele traz o Firestore e o `@grpc/grpc-js`, com 4 alertas **altos** no `npm audit`. O SDK só é baixado quando o login está ligado (import dinâmico, ≈ 47 KB com gzip) |
+| `marked` | 18 | Markdown → HTML nas respostas |
+| `dompurify` | 3.5 | **Sanitiza** esse HTML antes de entrar na página (defesa contra XSS vindo do modelo). Remove `script`, eventos `on*`, links `javascript:`, `iframe`, `style` e `img` (imagens externas poderiam vazar dados pela URL). Links abrem em nova aba com `rel="noopener noreferrer nofollow"` |
+| `jsdom` | 31 (dev) | Só para testar o sanitizador num DOM de verdade (`test/markdown.test.js`) |
+
+- **Script de instalação recusado:** o `@firebase/util` traz um `postinstall` que lê a configuração automática do Firebase App Hosting, que não usamos. Ele está negado em `allowScripts` no `package.json`, e por isso o npm 11 não avisa mais.
+- **Telas:**
+  - **login**: Google, entrar ou criar conta com e-mail e senha, recuperar senha, e-mails do Firebase em PT-BR;
+  - **aviso de acesso**: quando a API responde 403, mostra "Confirme seu e-mail" (com "Já confirmei" e "Reenviar") ou "Teste fechado";
+  - **barra lateral**: abrir, renomear e apagar conversas, e medidor de uso do dia. No celular, ela vira gaveta;
+  - um 401 (sessão expirada) desloga e volta para o login.
+- **Testes:** reducer (histórico, troca feita pela moderação), cliente da API (token Bearer, 401/403), formatação e sanitização de Markdown, mais o teste no navegador (desktop claro, celular escuro, Postgres e Gemini reais).
