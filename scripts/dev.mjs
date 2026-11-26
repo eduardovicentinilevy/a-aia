@@ -1,7 +1,8 @@
 // Starts the API and the web dev server side by side (works on Windows, macOS and Linux).
 // Usage: npm run dev
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { upgradeEnv } from './env-upgrade.mjs';
 
 const isWindows = process.platform === 'win32';
 
@@ -21,6 +22,15 @@ function missingPackages(workspace) {
   return Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter(
     (name) => !existsSync(`node_modules/${name}/package.json`) && !existsSync(`${workspace}/node_modules/${name}/package.json`),
   );
+}
+
+// Fix .env values that older versions of .env.example shipped (see scripts/env-upgrade.mjs).
+if (existsSync('.env')) {
+  const { text, changes } = upgradeEnv(readFileSync('.env', 'utf8'));
+  if (changes.length > 0) {
+    writeFileSync('.env', text);
+    for (const change of changes) console.log(`.env atualizado → ${change}`);
+  }
 }
 
 const missing = apps.flatMap((app) => missingPackages(app.workspace));

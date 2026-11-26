@@ -152,7 +152,7 @@ sudo -u postgres psql -d acaia -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 (A última linha é necessária porque, fora do Docker, o usuário `acaia` não é superusuário e não pode criar a extensão sozinho.)
 
-O WSL 2 encaminha a porta 5432 do Ubuntu para o Windows. Nesse caso, use `DATABASE_URL=postgres://acaia:acaia@localhost:5432/acaia` no `.env` (porta 5432, que é a do PostgreSQL dentro do WSL) e pule o `npm run db:up`.
+O WSL 2 encaminha a porta 5432 do Ubuntu para o Windows. Nesse caso, use `DATABASE_URL=postgresql://acaia:acaia@localhost:5432/acaia` no `.env` (porta 5432, que é a do PostgreSQL dentro do WSL) e pule o `npm run db:up`.
 
 ## 7. Deploy
 

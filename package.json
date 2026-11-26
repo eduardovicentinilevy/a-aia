@@ -12,10 +12,10 @@
   ],
   "scripts": {
     "env:init": "node scripts/env-init.mjs",
-    "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
+    "db:up": "node scripts/env-upgrade.mjs && docker compose -f infra/docker-compose.yml up -d --wait",
     "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:logs": "docker compose -f infra/docker-compose.yml logs -f db",
-    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:migrate": "node scripts/env-upgrade.mjs && npm run db:migrate -w apps/api",
     "db:rollback": "npm run db:rollback -w apps/api --",
     "dev": "node scripts/dev.mjs",
     "test": "npm run test --workspaces --if-present",
