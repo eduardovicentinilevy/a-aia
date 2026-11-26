@@ -1,0 +1,166 @@
+# Deploys AçaIA on every push to main (or manually from the Actions tab):
+#   tests → database migrations → API image → Cloud Run → web build → Firebase Hosting.
+# Authentication to Google uses Workload Identity Federation: GitHub proves "I am a workflow
+# of this repository on main" with a short-lived OIDC token — no JSON key stored anywhere.
+# One-time setup: docs/GCP_SETUP.md (Fase 1).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at the same time; never cancel one halfway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGION: ${{ vars.GCP_REGION || 'southamerica-east1' }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  SERVICE: acaia-api
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  api:
+    name: API → Cloud Run
+    needs: test
+    # Skipped until the Google Cloud setup is done (repository variable GCP_PROJECT_ID).
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # allows requesting the OIDC token used by Workload Identity Federation
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      IMAGE: ${{ vars.GCP_REGION || 'southamerica-east1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/acaia/api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Autenticar no Google Cloud (sem chave)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Ler a DATABASE_URL do Secret Manager
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v3
+        with:
+          secrets: |-
+            database_url:${{ vars.GCP_PROJECT_ID }}/acaia-database-url
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Instalar dependências da API
+        run: npm ci --workspace apps/api --omit=dev --ignore-scripts
+
+      # Migrations run BEFORE the new version goes live, so the code never meets an old schema.
+      - name: Aplicar migrações no banco
+        run: node apps/api/scripts/migrate.js up
+        env:
+          DATABASE_URL: ${{ steps.secrets.outputs.database_url }}
+
+      - name: Build e push da imagem
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -f apps/api/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Variáveis de ambiente do serviço
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          CORS_ORIGIN: https://${{ vars.GCP_PROJECT_ID }}.web.app,https://${{ vars.GCP_PROJECT_ID }}.firebaseapp.com
+          PRO_PROVIDER: ${{ vars.PRO_PROVIDER || 'openai-compatible' }}
+          PRO_BASE_URL: ${{ vars.PRO_BASE_URL }}
+          PRO_MODEL: ${{ vars.PRO_MODEL }}
+          PRO_COST_INPUT_BRL_PER_1M: ${{ vars.PRO_COST_INPUT_BRL_PER_1M }}
+          PRO_COST_OUTPUT_BRL_PER_1M: ${{ vars.PRO_COST_OUTPUT_BRL_PER_1M }}
+          DAILY_TOKEN_LIMIT_PER_USER: ${{ vars.DAILY_TOKEN_LIMIT_PER_USER }}
+          MONTHLY_BUDGET_BRL: ${{ vars.MONTHLY_BUDGET_BRL }}
+          ALLOWED_EMAILS: ${{ secrets.ALLOWED_EMAILS }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+        # JSON is valid YAML for --env-vars-file and handles commas/URLs safely.
+        run: |
+          node -e '
+            const keys = ["FIREBASE_PROJECT_ID", "CORS_ORIGIN", "PRO_PROVIDER", "PRO_BASE_URL", "PRO_MODEL",
+              "PRO_COST_INPUT_BRL_PER_1M", "PRO_COST_OUTPUT_BRL_PER_1M", "DAILY_TOKEN_LIMIT_PER_USER",
+              "MONTHLY_BUDGET_BRL", "ALLOWED_EMAILS", "ADMIN_EMAILS"];
+            const env = { NODE_ENV: "production", MODERATION_PROVIDER: "keyword" };
+            for (const key of keys) if (process.env[key]) env[key] = process.env[key];
+            require("node:fs").writeFileSync("env.json", JSON.stringify(env));
+          '
+
+      - name: Deploy no Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --service-account "acaia-api@$PROJECT_ID.iam.gserviceaccount.com" \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --cpu 1 \
+            --memory 512Mi \
+            --concurrency 40 \
+            --timeout 300 \
+            --env-vars-file env.json \
+            --set-secrets "DATABASE_URL=acaia-database-url:latest,PRO_API_KEY=acaia-pro-api-key:latest" \
+            --quiet
+          echo "url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      - name: Teste de fumaça (/health)
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 5 "${{ steps.deploy.outputs.url }}/health"
+
+  web:
+    name: Chat → Firebase Hosting
+    needs: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build do chat
+        run: npm run build -w apps/web
+        env:
+          VITE_API_BASE_URL: ${{ needs.api.outputs.url }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.GCP_PROJECT_ID }}.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+
+      - name: Autenticar no Google Cloud (sem chave)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Publicar no Firebase Hosting
+        run: npx --yes firebase-tools@15.37.0 deploy --only hosting --project "$PROJECT_ID" --non-interactive
+
+      - name: Endereço
+        run: echo "Chat no ar em https://$PROJECT_ID.web.app" >> "$GITHUB_STEP_SUMMARY"
