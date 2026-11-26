@@ -64,6 +64,8 @@ npm run db:migrate
 npm run dev
 ```
 
+**Depois de todo `git pull`, rode `npm install`** (o pull pode trazer pacotes novos). Se você esquecer, o `npm run dev` avisa quais estão faltando.
+
 O `db:migrate` aplica as migrações pendentes (é seguro rodar sempre; sem pendências, ele não faz nada). Para desfazer a última: `npm run db:rollback`.
 
 - Chat: **http://localhost:5173** (React com Vite: ao salvar um `.jsx` ou `.css`, a tela atualiza na hora, sem perder a conversa)
@@ -123,6 +125,7 @@ O `build` gera `apps/web/dist/` e o `preview` serve esse resultado em http://loc
 | Sintoma | Causa provável | Solução |
 | --- | --- | --- |
 | `npm.ps1 não pode ser carregado` | Política de execução do PowerShell | Seção 1.6 |
+| `Cannot find package '…'` ou *"Faltam dependências instaladas"* | `git pull` trouxe pacotes novos | `npm install` |
 | `db:up` falha com *"cannot connect to the Docker daemon"* / *"pipe/dockerDesktopLinuxEngine"* | Docker Desktop fechado | Abra o Docker Desktop e espere ficar verde |
 | `db:up` falha com *"port is already allocated"* (5432) | Já existe um PostgreSQL instalado no Windows | Pare o serviço `postgresql-x64-*` em *services.msc*, ou mude a porta no `infra/docker-compose.yml` **e** no `DATABASE_URL` |
 | `/health` mostra `"status":"degraded"` | Banco fora do ar | `npm run db:up` e confira o Docker Desktop |

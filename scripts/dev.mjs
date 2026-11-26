@@ -1,6 +1,7 @@
 // Starts the API and the web dev server side by side (works on Windows, macOS and Linux).
 // Usage: npm run dev
 import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 
 const isWindows = process.platform === 'win32';
 
@@ -9,6 +10,25 @@ const apps = [
   { name: 'api', color: '\x1b[35m', workspace: 'apps/api' },
   { name: 'web', color: '\x1b[36m', workspace: 'apps/web' },
 ];
+
+/**
+ * Packages declared by a workspace that are not installed. Happens after `git pull`
+ * brings new dependencies and `npm install` was not run yet.
+ * @param {string} workspace
+ */
+function missingPackages(workspace) {
+  const pkg = JSON.parse(readFileSync(`${workspace}/package.json`, 'utf8'));
+  return Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter(
+    (name) => !existsSync(`node_modules/${name}/package.json`) && !existsSync(`${workspace}/node_modules/${name}/package.json`),
+  );
+}
+
+const missing = apps.flatMap((app) => missingPackages(app.workspace));
+if (missing.length > 0) {
+  console.error(`\nFaltam dependências instaladas: ${missing.join(', ')}.`);
+  console.error('Isso acontece depois de um "git pull" que trouxe pacotes novos. Rode:\n\n  npm install\n\ne depois "npm run dev" de novo.\n');
+  process.exit(1);
+}
 
 const reset = '\x1b[0m';
 const children = [];
