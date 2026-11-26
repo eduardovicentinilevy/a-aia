@@ -14,6 +14,13 @@ model = "mock"
 license = "—"
 notes = "Respostas fixas, sem rede. Serve para testar o harness."
 
+[models.mock_juiz]
+provider = "mock"
+model = "mock-juiz"
+judge_allowed = true
+license = "—"
+notes = "Juiz falso, sem rede: notas fixas. Serve para testar o judge.py."
+
 [models.pro]
 provider = "openai-compatible"
 base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
