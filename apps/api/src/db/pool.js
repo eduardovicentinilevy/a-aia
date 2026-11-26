@@ -47,3 +47,24 @@ export async function checkDatabase(pool, { timeoutMs = 1500 } = {}) {
     clearTimeout(timer);
   }
 }
+
+/**
+ * A short PT-BR hint for the most common local database errors (shown in the startup log).
+ * @param {string} code  PostgreSQL SQLSTATE or Node network error code.
+ */
+export function databaseHint(code) {
+  switch (code) {
+    case 'ECONNREFUSED':
+    case 'timeout':
+      return 'Banco fora do ar? Rode: npm run db:up (e confira a porta do DATABASE_URL).';
+    case '28000': // role does not exist
+    case '28P01': // wrong password
+      return 'Usuário ou senha recusados. Se você tem um PostgreSQL instalado no computador, o DATABASE_URL pode estar apontando para ele: use postgres://acaia:acaia@127.0.0.1:5433/acaia (banco do Docker).';
+    case '3D000': // database does not exist
+      return 'O banco do DATABASE_URL não existe. Confira o nome no final da URL.';
+    case 'ENOTFOUND':
+      return 'Endereço do banco não encontrado. Confira o host do DATABASE_URL.';
+    default:
+      return 'Não consegui falar com o banco. Confira o DATABASE_URL e rode: npm run db:up';
+  }
+}

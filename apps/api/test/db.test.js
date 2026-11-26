@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkDatabase, createPool } from '../src/db/pool.js';
+import { checkDatabase, createPool, databaseHint } from '../src/db/pool.js';
 import { silentLogger } from '../src/lib/logger.js';
 import { dbAvailable, freshDatabase } from './helpers/test-db.js';
 
@@ -13,6 +13,14 @@ describe('checkDatabase', () => {
     const status = await checkDatabase(pool);
     expect(status.ok).toBe(false);
     await pool.end();
+  });
+});
+
+describe('databaseHint', () => {
+  it('explains the "role does not exist" case (another PostgreSQL on the machine)', () => {
+    expect(databaseHint('28000')).toContain('127.0.0.1:5433');
+    expect(databaseHint('ECONNREFUSED')).toContain('npm run db:up');
+    expect(databaseHint('XX999')).toContain('DATABASE_URL');
   });
 });
 
