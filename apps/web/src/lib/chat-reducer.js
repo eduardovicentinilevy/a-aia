@@ -17,19 +17,44 @@
  * @typedef {object} ChatState
  * @property {ChatMessage[]} messages
  * @property {string|null} streamingId  Id of the answer being generated, or null.
+ * @property {boolean} loading          True while an old conversation's history is loading.
  *
  * @typedef {{ type: 'send', userId: string, assistantId: string, content: string }
  *   | { type: 'event', id: string, event: string, data: any }
  *   | { type: 'stopped', id: string }
  *   | { type: 'failed', id: string, message: string }
  *   | { type: 'finished', id: string }
+ *   | { type: 'loading' }
+ *   | { type: 'load', messages: ChatMessage[] }
  *   | { type: 'reset' }} ChatAction
  */
 
 export const CONNECTION_LOST_MESSAGE = 'A conexão caiu antes do fim da resposta. Tente de novo.';
 
 /** @type {ChatState} */
-export const initialChatState = { messages: [], streamingId: null };
+export const initialChatState = { messages: [], streamingId: null, loading: false };
+
+/**
+ * Converts a message from the API (GET /conversations/:id/messages) into a chat bubble.
+ * @param {import('./api.js').ServerMessage} m
+ * @returns {ChatMessage}
+ */
+export function fromServerMessage(m) {
+  if (m.role === 'user') return { id: m.id, role: 'user', text: m.content, status: 'done' };
+  return {
+    id: m.id,
+    role: 'assistant',
+    text: m.content,
+    status: 'done',
+    meta: {
+      tier: m.routeReason === 'moderation_blocked' ? 'moderation' : 'pro',
+      model: m.model ?? '',
+      routeReason: m.routeReason ?? undefined,
+    },
+    stats: { firstTokenMs: m.firstTokenMs, latencyMs: m.latencyMs },
+    error: null,
+  };
+}
 
 /**
  * Returns a new state where message `id` is patched; the same state if nothing changed.
@@ -62,9 +87,11 @@ function applyServerEvent(state, id, event, data) {
     case 'token':
       return patchMessage(state, id, (m) => ({ text: m.text + data.text }));
     case 'done':
-      return patchMessage(state, id, () => ({
+      return patchMessage(state, id, (m) => ({
         status: 'done',
         stats: { firstTokenMs: data.firstTokenMs ?? null, latencyMs: data.latencyMs ?? null },
+        // Output moderation replaced the answer: show the notice instead of what was streamed.
+        text: typeof data.replacement === 'string' ? data.replacement : m.text,
       }));
     case 'error':
       return patchMessage(state, id, () => ({ status: 'error', error: data.message }));
@@ -82,6 +109,7 @@ export function chatReducer(state, action) {
   switch (action.type) {
     case 'send':
       return {
+        ...state,
         messages: [
           ...state.messages,
           { id: action.userId, role: 'user', text: action.content, status: 'done' },
@@ -107,6 +135,12 @@ export function chatReducer(state, action) {
       // Ignore a late 'finished' from an older request (e.g. after "Nova conversa").
       return next.streamingId === action.id ? { ...next, streamingId: null } : next;
     }
+
+    case 'loading':
+      return { messages: [], streamingId: null, loading: true };
+
+    case 'load':
+      return { messages: action.messages, streamingId: null, loading: false };
 
     case 'reset':
       return initialChatState;

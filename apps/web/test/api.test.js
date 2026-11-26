@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_BASE_URL, ApiError, createConversation, sendMessage } from '../src/lib/api.js';
+import {
+  API_BASE_URL,
+  ApiError,
+  configureApi,
+  createConversation,
+  deleteConversation,
+  getMessages,
+  listConversations,
+  renameConversation,
+  sendMessage,
+} from '../src/lib/api.js';
 
 /** A Response whose body arrives in separate chunks, like a real stream. */
 function streamingResponse(chunks, init = { status: 200, headers: { 'Content-Type': 'text/event-stream' } }) {
@@ -13,7 +23,10 @@ function streamingResponse(chunks, init = { status: 200, headers: { 'Content-Typ
   return new Response(body, init);
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  configureApi({ getToken: async () => null });
+});
 
 describe('createConversation', () => {
   it('POSTs to /conversations and returns the conversation', async () => {
@@ -71,3 +84,59 @@ describe('sendMessage', () => {
     });
   });
 });
+
+describe('authentication', () => {
+  it('sends the Firebase ID token as a Bearer header when signed in', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ conversations: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    configureApi({ getToken: async () => 'id-token-123' });
+
+    await listConversations();
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer id-token-123');
+  });
+
+  it('sends no Authorization header when login is disabled', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ conversations: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    await listConversations();
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it.each([401, 403])('reports HTTP %i to the auth error handler', async (status) => {
+    const onAuthError = vi.fn();
+    configureApi({ getToken: async () => 't', onAuthError });
+    vi.stubGlobal('fetch', async () => Response.json({ error: { code: 'x', message: 'Sem acesso.' } }, { status }));
+
+    await expect(listConversations()).rejects.toBeInstanceOf(ApiError);
+    expect(onAuthError).toHaveBeenCalledWith(expect.objectContaining({ status, message: 'Sem acesso.' }));
+  });
+
+  it('does not call the auth handler for other errors', async () => {
+    const onAuthError = vi.fn();
+    configureApi({ getToken: async () => 't', onAuthError });
+    vi.stubGlobal('fetch', async () => Response.json({ error: { code: 'daily_limit_reached', message: 'Limite.' } }, { status: 429 }));
+    await expect(listConversations()).rejects.toMatchObject({ status: 429 });
+    expect(onAuthError).not.toHaveBeenCalled();
+  });
+});
+
+describe('conversation endpoints', () => {
+  it('renames, deletes and reads history with the right method and URL', async () => {
+    const fetchMock = vi.fn(async (_url, init) =>
+      init?.method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json({ id: 'c1', title: 'Novo', messages: [] }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await renameConversation('c1', 'Novo');
+    await deleteConversation('c1');
+    await getMessages('c1');
+
+    expect(fetchMock.mock.calls.map(([url, init]) => [init.method ?? 'GET', url])).toEqual([
+      ['PATCH', `${API_BASE_URL}/conversations/c1`],
+      ['DELETE', `${API_BASE_URL}/conversations/c1`],
+      ['GET', `${API_BASE_URL}/conversations/c1/messages`],
+    ]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ title: 'Novo' });
+  });
+});
+

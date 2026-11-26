@@ -20,5 +20,8 @@
     "dev": "node scripts/dev.mjs",
     "test": "npm run test --workspaces --if-present",
     "pro:models": "npm run pro:models -w apps/api"
+  },
+  "allowScripts": {
+    "@firebase/util": false
   }
 }

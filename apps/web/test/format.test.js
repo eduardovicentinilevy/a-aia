@@ -18,6 +18,7 @@ describe('tierLabel', () => {
   it('names the two tiers', () => {
     expect(tierLabel('pro')).toBe('AçaIA Pro');
     expect(tierLabel('copinho')).toBe('AçaIA Copinho');
+    expect(tierLabel('moderation')).toBe('Segurança');
   });
 });
 
@@ -32,6 +33,10 @@ describe('metaLine', () => {
   it('shows the model while streaming and marks stopped answers', () => {
     expect(metaLine({ ...base, status: 'streaming' })).toBe('AçaIA Pro · mock');
     expect(metaLine({ ...base, status: 'stopped' })).toBe('AçaIA Pro · mock · interrompida');
+  });
+
+  it('labels moderation refusals simply', () => {
+    expect(metaLine({ ...base, meta: { tier: 'moderation', model: 'keyword' }, status: 'done', stats: { firstTokenMs: 1, latencyMs: 1 } })).toBe('Segurança');
   });
 
   it('is empty for user messages and for answers without meta yet', () => {

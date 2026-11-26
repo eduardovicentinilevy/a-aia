@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONNECTION_LOST_MESSAGE, chatReducer, initialChatState } from '../src/lib/chat-reducer.js';
+import { CONNECTION_LOST_MESSAGE, chatReducer, fromServerMessage, initialChatState } from '../src/lib/chat-reducer.js';
 
 /** @param {import('../src/lib/chat-reducer.js').ChatAction[]} actions */
 const run = (actions, state = initialChatState) => actions.reduce(chatReducer, state);
@@ -81,4 +81,33 @@ describe('chatReducer', () => {
   it('clears everything on reset', () => {
     expect(run([send(), { type: 'reset' }])).toBe(initialChatState);
   });
+
+  it('swaps the streamed text for the moderation notice when done carries a replacement', () => {
+    const state = run([send(), event('token', { text: 'texto ruim' }), event('done', { replacement: 'Removi esta resposta.' })]);
+    expect(state.messages[1]).toMatchObject({ text: 'Removi esta resposta.', status: 'done' });
+  });
+
+  it('shows a loading state and then the loaded history', () => {
+    const loading = run([send(), { type: 'loading' }]);
+    expect(loading).toEqual({ messages: [], streamingId: null, loading: true });
+    const loaded = chatReducer(loading, { type: 'load', messages: [{ id: 'm1', role: 'user', text: 'oi', status: 'done' }] });
+    expect(loaded).toEqual({ messages: [{ id: 'm1', role: 'user', text: 'oi', status: 'done' }], streamingId: null, loading: false });
+  });
 });
+
+describe('fromServerMessage', () => {
+  const base = { id: 'x', model: null, routeReason: null, latencyMs: null, firstTokenMs: null, createdAt: '2026-12-01T00:00:00Z' };
+
+  it('maps user and assistant messages from the API', () => {
+    expect(fromServerMessage({ ...base, role: 'user', content: 'oi' })).toEqual({ id: 'x', role: 'user', text: 'oi', status: 'done' });
+    expect(
+      fromServerMessage({ ...base, role: 'assistant', content: 'olá', model: 'gemini-3.5-flash-lite', routeReason: 'pro_only', latencyMs: 900, firstTokenMs: 400 }),
+    ).toMatchObject({ role: 'assistant', text: 'olá', meta: { tier: 'pro', model: 'gemini-3.5-flash-lite' }, stats: { latencyMs: 900, firstTokenMs: 400 } });
+  });
+
+  it('marks moderation refusals', () => {
+    const message = fromServerMessage({ ...base, role: 'assistant', content: 'Não posso ajudar', model: 'keyword', routeReason: 'moderation_blocked' });
+    expect(message.meta?.tier).toBe('moderation');
+  });
+});
+
