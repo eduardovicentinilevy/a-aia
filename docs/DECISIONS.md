@@ -225,3 +225,23 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
   - **barra lateral**: abrir, renomear e apagar conversas, e medidor de uso do dia. No celular, ela vira gaveta;
   - um 401 (sessão expirada) desloga e volta para o login.
 - **Testes:** reducer (histórico, troca feita pela moderação), cliente da API (token Bearer, 401/403), formatação e sanitização de Markdown, mais o teste no navegador (desktop claro, celular escuro, Postgres e Gemini reais).
+
+## D-022 — Deploy: Cloud Run + Firebase Hosting via GitHub Actions com Workload Identity Federation
+**Fase 1 · aceita**
+
+- **API → Cloud Run** (`acaia-api`, `southamerica-east1`):
+  - mínimo 0 e máximo 2 instâncias, 1 vCPU, 512 MiB, 40 requisições simultâneas por instância;
+  - timeout de 300 s (o SSE precisa de conexões longas);
+  - imagem `node:26-slim` em dois estágios, só com as dependências da API, rodando como o usuário `node` e com `--ignore-scripts` no `npm ci`;
+  - segredos (`DATABASE_URL`, `PRO_API_KEY`) vêm do **Secret Manager** com `--set-secrets` e nunca passam pelo GitHub.
+- **Chat → Firebase Hosting**: plano gratuito, HTTPS, CDN e o mesmo projeto do login. Por isso não usamos Cloud Storage + Load Balancer: o balanceador custa por hora.
+- **Migrações no pipeline:** o job roda `migrate.js up` direto no Neon **antes** de publicar a imagem nova. A trava de migração protege contra dois deploys ao mesmo tempo, e o workflow também usa `concurrency`.
+- **Sem chave JSON:** o GitHub prova "sou um workflow deste repositório, na `main`" com um token OIDC de curta duração. O provedor WIF só aceita `assertion.repository == eduardovicentinilevy/a-aia && assertion.ref == refs/heads/main`.
+- **Duas contas de serviço com o mínimo de permissões:**
+  - `acaia-api` só lê os dois segredos;
+  - `acaia-deployer` tem Cloud Run admin, Artifact Registry writer, Firebase Hosting admin, Service Usage consumer, `serviceAccountUser` só em `acaia-api` e leitura do segredo do banco (para as migrações).
+- **Artifact Registry** guarda as 5 imagens mais recentes e apaga o resto depois de 7 dias, para ficar no 0,5 GB gratuito.
+- **Ainda não verificado:**
+  - não pude testar a publicação no Firebase Hosting com credencial WIF (`firebase-tools` 15 via `npx`), porque não tenho acesso ao projeto. A imagem e o servidor em modo produção foram testados localmente;
+  - o `actionlint` não rodou aqui; os workflows foram revisados à mão e validados como YAML.
+- **Fase 5:** cabeçalho **CSP** completo no Hosting. Ele depende da URL final da API e dos domínios do login do Google, e é melhor ajustá-lo com o site no ar. Hoje já vão `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` e HSTS.

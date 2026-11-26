@@ -7,7 +7,7 @@ Dois níveis de modelo, escolhidos por um orquestrador:
 - **AçaIA Copinho**: modelo aberto pequeno, ajustado por nós com LoRA (a partir da Fase 3).
 - **AçaIA Pro**: modelo de fronteira via API, só para perguntas difíceis.
 
-> **Status:** Fase 0 — Fundação. Chat local com respostas em streaming; conversas ficam em memória (somem ao reiniciar a API). Login, banco de verdade e deploy chegam na Fase 1. Veja [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status:** Fase 1 — Chat e backend. Login (Firebase), histórico no PostgreSQL, limites de uso, moderação básica, chat em React e deploy automático (Cloud Run + Firebase Hosting) prontos; falta o primeiro deploy com as suas contas. Veja [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Rodando localmente (Windows, macOS ou Linux)
 
@@ -19,10 +19,15 @@ cd a-aia
 npm install
 npm run env:init
 npm run db:up
+npm run db:migrate
 npm run dev
 ```
 
-Abra **http://localhost:5173** e converse. Sem configurar nada, quem responde é o `MockProvider` (respostas de teste, sem internet e sem custo). Para usar um modelo real de graça, siga "Configurar o Pro" no RUNBOOK.
+Abra **http://localhost:5173** e converse. Sem configurar nada:
+- quem responde é o `MockProvider` (respostas de teste, sem internet e sem custo);
+- o login fica desligado e todos são o usuário "Dev local".
+
+Para usar um modelo real de graça, siga "Configurar o Pro" no RUNBOOK. Para publicar na internet, veja `docs/GCP_SETUP.md` (Fase 1).
 
 ## Comandos
 
@@ -30,6 +35,7 @@ Abra **http://localhost:5173** e converse. Sem configurar nada, quem responde é
 | --- | --- |
 | `npm run env:init` | Cria o `.env` a partir do `.env.example` (só se ainda não existir) |
 | `npm run db:up` / `npm run db:down` | Sobe / derruba o PostgreSQL 17 + pgvector no Docker |
+| `npm run db:migrate` / `npm run db:rollback` | Aplica as migrações pendentes / desfaz a última |
 | `npm run dev` | Sobe a API (http://localhost:8080) e o chat web (http://localhost:5173) |
 | `npm test` | Roda todos os testes (API e web) |
 | `npm run build -w apps/web` | Gera o site de produção do chat em `apps/web/dist/` |
@@ -40,7 +46,8 @@ Abra **http://localhost:5173** e converse. Sem configurar nada, quem responde é
 ```
 apps/api/      API Node.js/Express: rotas, orquestrador, providers, prompts
 apps/web/      Chat web em React + CSS puro (Vite), com o açaí como cor principal
-infra/         docker-compose do banco local
+infra/         docker-compose do banco local e script de setup do Google Cloud
+.github/       CI (testes) e deploy automático (Cloud Run + Firebase Hosting)
 scripts/       utilitários de desenvolvimento (multiplataforma)
 docs/          PROGRESS, DECISIONS, RUNBOOK e guia do Google Cloud
 CLAUDE.md      prompt mestre do projeto (escopo, arquitetura e fases)

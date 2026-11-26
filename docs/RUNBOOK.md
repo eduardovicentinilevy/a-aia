@@ -126,7 +126,7 @@ O `build` gera `apps/web/dist/` e o `preview` serve esse resultado em http://loc
 | `db:up` falha com *"cannot connect to the Docker daemon"* / *"pipe/dockerDesktopLinuxEngine"* | Docker Desktop fechado | Abra o Docker Desktop e espere ficar verde |
 | `db:up` falha com *"port is already allocated"* (5432) | Já existe um PostgreSQL instalado no Windows | Pare o serviço `postgresql-x64-*` em *services.msc*, ou mude a porta no `infra/docker-compose.yml` **e** no `DATABASE_URL` |
 | `/health` mostra `"status":"degraded"` | Banco fora do ar | `npm run db:up` e confira o Docker Desktop |
-| `npm run dev` diz *"Configuração inválida no .env"* | Variável faltando ou com valor inválido | A mensagem lista quais; confira o `.env` |
+| `npm run dev` diz *"Configuração inválida (.env ou variáveis de ambiente)"* | Variável faltando ou com valor inválido | A mensagem lista quais; confira o `.env` |
 | O chat mostra *"Não consegui falar com a API"* | API parada ou em outra porta | Veja o terminal do `npm run dev` |
 | O chat mostra *"O limite de uso do modelo foi atingido"* | Cota do plano gratuito do Pro | Espere renovar ou volte para `PRO_PROVIDER=mock` |
 | `EADDRINUSE :8080` ou `:5173` | Outro programa ou um `npm run dev` antigo usando a porta | Feche o outro terminal, ou mude `PORT` / `WEB_PORT` no `.env`. Se mudar `PORT`, ajuste `VITE_API_BASE_URL`; se mudar `WEB_PORT`, ajuste `CORS_ORIGIN` |
@@ -150,6 +150,59 @@ sudo -u postgres psql -d acaia -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 O WSL 2 encaminha `localhost:5432` para o Windows, então o `DATABASE_URL` do `.env` continua o mesmo. Nesse caso, pule o `npm run db:up`.
 
-## 7. Deploy e rollback
+## 7. Deploy
 
-Ainda não existe deploy: ele chega na Fase 1 (Cloud Run + Cloud SQL via GitHub Actions). Este documento vai ganhar as seções de deploy e de rollback nessa fase. Por enquanto, a API **se recusa a subir com `NODE_ENV=production`**, porque ainda não há login.
+O deploy é **automático**: todo push na `main` dispara o workflow **Deploy** (`.github/workflows/deploy.yml`):
+
+1. testes, com um PostgreSQL de verdade no CI;
+2. `db:migrate` no Neon;
+3. imagem da API no Artifact Registry;
+4. Cloud Run (`acaia-api`, `southamerica-east1`, mínimo 0 e máximo 2 instâncias);
+5. build do chat;
+6. Firebase Hosting.
+
+Para publicar sem novo commit: **Actions → Deploy → Run workflow**. A configuração inicial, feita uma vez só, está em `docs/GCP_SETUP.md` (Fase 1).
+
+- **Ver os logs da API:** console do Google Cloud → Cloud Run → `acaia-api` → **Registros**, ou no terminal:
+
+  ```bash
+  gcloud run services logs read acaia-api --region southamerica-east1 --limit 50
+  ```
+
+  Os logs são JSON e já vêm com e-mail, CPF, telefone e chaves mascarados.
+- **Trocar a chave do Gemini ou a connection string do Neon:** rode de novo `infra/gcp/setup.sh` e responda "s" na pergunta do segredo. Depois rode o workflow **Deploy** de novo para a API pegar o valor novo.
+- **Convidar alguém:** edite o segredo `ALLOWED_EMAILS` no GitHub e rode o **Deploy**. A pessoa precisa entrar com um e-mail **verificado** (Google já é; e-mail e senha pedem a confirmação pelo link).
+
+## 8. Rollback (voltar uma versão)
+
+- **API:** o Cloud Run guarda as versões anteriores (revisões). Liste e mande 100% do tráfego para a anterior:
+
+  ```bash
+  gcloud run revisions list --service acaia-api --region southamerica-east1
+  ```
+
+  ```bash
+  gcloud run services update-traffic acaia-api --region southamerica-east1 --to-revisions NOME_DA_REVISAO=100
+  ```
+
+  O próximo deploy volta a mandar o tráfego para a versão nova.
+- **Chat (web):** console do Firebase → **Hosting** → histórico de versões → **⋮ → Reverter** na versão boa.
+- **Banco:** prefira **corrigir para a frente**, com uma nova migração. `db:rollback` em produção pode apagar dados. Se for mesmo necessário, use a connection string do Neon só no seu terminal:
+
+  ```bash
+  DATABASE_URL="postgresql://..." npm run db:rollback
+  ```
+
+  O Neon também restaura o banco para um momento anterior (*branch / restore*) dentro do período que o plano gratuito guarda.
+
+## 9. Problemas no deploy
+
+| Sintoma no Actions | Causa provável | Solução |
+| --- | --- | --- |
+| Jobs "API" e "Chat" aparecem como *skipped* | Variável `GCP_PROJECT_ID` não configurada | GCP_SETUP, passo D |
+| `auth` falha com *"unable to impersonate"* ou *"permission denied"* | Workflow fora da `main`, repositório com outro nome ou script não rodado | Rode o deploy a partir da `main`; confira `GCP_WIF_PROVIDER` e `GCP_DEPLOY_SA`; rode o script de novo |
+| `Aplicar migrações` falha com *"connection"* | Connection string errada ou com `-pooler` | Troque o segredo `acaia-database-url` (GCP_SETUP, passo B.2) |
+| `Deploy no Cloud Run` falha com *"Configuração inválida"* nos logs | Falta variável (ex.: `ADMIN_EMAILS`, `PRO_MODEL`) | Os logs da revisão listam quais; ajuste no GitHub e rode de novo |
+| `Publicar no Firebase Hosting` falha com *"permission"* ou *"not found"* | Firebase ainda não adicionado ao projeto | GCP_SETUP, passo A.1 |
+| No site, o login abre e fecha com erro de domínio | Domínio não autorizado no Firebase Auth | GCP_SETUP, passo A.4 |
+| No site, *"Não consegui falar com a API"* | `CORS_ORIGIN` ou URL da API diferentes | O deploy configura os dois sozinho; rode o **Deploy** de novo, completo |
