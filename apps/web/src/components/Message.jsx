@@ -1,11 +1,14 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { metaLine } from '../lib/format.js';
+import { renderMarkdown } from '../lib/markdown.js';
 import AcaiLogo from './AcaiLogo.jsx';
 import './Message.css';
 
 /**
- * One chat bubble. React escapes text by default, so model output can never inject HTML.
- * (Markdown rendering with DOMPurify comes in Phase 1.)
+ * One chat bubble.
+ * - User text is shown as plain text (React escapes it).
+ * - Assistant text is Markdown, converted to HTML and SANITIZED by DOMPurify (lib/markdown.js)
+ *   before it touches the page — the only place where we inject HTML.
  * @param {{ message: import('../lib/chat-reducer.js').ChatMessage }} props
  */
 function Message({ message }) {
@@ -13,6 +16,7 @@ function Message({ message }) {
   const isAssistant = role === 'assistant';
   const meta = metaLine(message);
   const waitingFirstToken = status === 'streaming' && text === '';
+  const html = useMemo(() => (isAssistant && text ? renderMarkdown(text) : ''), [isAssistant, text]);
 
   return (
     <article className={`message message--${role} message--${status}`} aria-busy={status === 'streaming' || undefined}>
@@ -30,7 +34,9 @@ function Message({ message }) {
               <span />
             </span>
           )}
-          {text && <span className="message__text">{text}</span>}
+          {text && !isAssistant && <span className="message__text">{text}</span>}
+          {/* eslint-disable-next-line react/no-danger -- sanitized by DOMPurify in renderMarkdown */}
+          {html && <div className="message__markdown" dangerouslySetInnerHTML={{ __html: html }} />}
           {status === 'stopped' && !text && <span className="message__placeholder">Resposta interrompida.</span>}
           {error && <p className="message__error">{error}</p>}
         </div>

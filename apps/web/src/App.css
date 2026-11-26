@@ -4,9 +4,48 @@
   height: 100dvh;
 }
 
+.app__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .app__main {
   flex: 1;
+  min-width: 0;
   min-height: 0; /* lets the message list scroll inside the flex column */
   display: flex;
   flex-direction: column;
+}
+
+.app__loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+}
+
+.app__loading--error {
+  color: var(--color-danger);
+}
+
+/* First paint while Firebase checks the session */
+.splash {
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--header-bg);
+}
+
+.splash__logo {
+  padding: 16px;
+  border-radius: 999px;
+  background: var(--acai-50);
+  animation: splash-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes splash-pulse {
+  50% {
+    transform: scale(1.08);
+  }
 }
