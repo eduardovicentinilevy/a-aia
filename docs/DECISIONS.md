@@ -245,3 +245,26 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
   - não pude testar a publicação no Firebase Hosting com credencial WIF (`firebase-tools` 15 via `npx`), porque não tenho acesso ao projeto. A imagem e o servidor em modo produção foram testados localmente;
   - o `actionlint` não rodou aqui; os workflows foram revisados à mão e validados como YAML.
 - **Fase 5:** cabeçalho **CSP** completo no Hosting. Ele depende da URL final da API e dos domínios do login do Google, e é melhor ajustá-lo com o site no ar. Hoje já vão `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` e HSTS.
+
+---
+
+# Fase 2
+
+## D-023 — Quem pode escrever dados e julgar o Copinho
+**Fase 2 · aceita (padrão adotado; o Eduardo pode mudar)**
+
+- **Regra do projeto:** CLAUDE.md §5.8 diz *"Não use saídas de provedores cujos termos proíbam treinar outros modelos com elas."*
+- **O que isso implica:** os termos do **Claude** (Anthropic) e do **Gemini API** (*"you may not use the Services to develop models that compete with the Services"*) proíbem usar as respostas deles para desenvolver ou treinar modelos concorrentes, e o Copinho é um deles. Portanto:
+  - **dados de treino** (os ≥ 300 exemplos autorais e qualquer outro): escritos pelo Eduardo, ou rascunhados por um modelo aberto **Apache-2.0/MIT** e revisados por ele. Nunca por Claude ou Gemini;
+  - **perguntas dos conjuntos de avaliação** (`instrucoes`, `seguranca`): escritas pelo Eduardo, a partir do guia em `ml/eval/sets/README.md`. O guia, as categorias e o código são meus;
+  - **juiz** (rubrica e segurança): só modelos com `judge_allowed = true` no `models.toml`, que são modelos abertos de licença permissiva. O `judge.py` recusa os outros. Um teste garante que nenhum modelo Gemini ou Claude tenha essa marca;
+  - **medir o Pro** (Gemini) como linha de base é permitido: isso é avaliar o serviço, não desenvolver um modelo com ele.
+- **Não é orientação jurídica.** É a leitura cautelosa dos termos, aplicando a regra que o próprio projeto já tinha.
+
+## D-024 — Conjunto do ENEM: ENEM 2024 do projeto GPT-4-ENEM (MIT)
+**Fase 2 · aceita**
+
+- **Contexto:** o `huggingface.co` é bloqueado pela rede do ambiente de desenvolvimento em nuvem. O repositório do GPT-4-ENEM (Maritaca/Unicamp, **licença MIT**) está no GitHub e tem o **ENEM 2024 completo**, com as **descrições textuais das imagens** do caderno acessível. Hoje o repositório só tem o 2024 nesse formato.
+- **Escolha:** 179 questões (180 menos 1 anulada), distribuídas em linguagens 45, humanas 45, natureza 44 e matemática 45. O commit da origem fica fixado no código. A conversão é reprodutível (`python ml/eval/build_sets.py enem`), e a cópia convertida é versionada com a atribuição em `ml/eval/sets/LICENSES.md`.
+- **Precisão:** com cerca de 180 questões, o intervalo de confiança de 95% da acurácia é de **±7 pontos**. Uma diferença de 10 pontos é distinguível; uma de 3 não é.
+- **Limite conhecido:** o ENEM 2024 pode ter entrado nos dados de treino de modelos lançados em 2025–2026 (contaminação), o que infla a nota absoluta. A comparação **Copinho × modelo base**, que é o critério da Fase 3, usa o mesmo conjunto nos dois modelos, então continua justa.
