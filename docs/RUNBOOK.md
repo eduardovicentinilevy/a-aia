@@ -210,3 +210,20 @@ Para publicar sem novo commit: **Actions → Deploy → Run workflow**. A config
 | `Publicar no Firebase Hosting` falha com *"permission"* ou *"not found"* | Firebase ainda não adicionado ao projeto | GCP_SETUP, passo A.1 |
 | No site, o login abre e fecha com erro de domínio | Domínio não autorizado no Firebase Auth | GCP_SETUP, passo A.4 |
 | No site, *"Não consegui falar com a API"* | `CORS_ORIGIN` ou URL da API diferentes | O deploy configura os dois sozinho; rode o **Deploy** de novo, completo |
+
+## 10. Avaliação e dataset (Fase 2, Python)
+
+Preparar o Python uma vez: veja `ml/README.md` (venv + `pip install -r ml/requirements-dev.txt`).
+
+| Comando | O que faz |
+| --- | --- |
+| `python ml/eval/run.py --list` | Modelos cadastrados em `ml/eval/models.toml` |
+| `python ml/eval/run.py --model pro --sets enem` | ENEM 2024 com o Pro. Se a cota acabar, rode de novo depois: ele continua de onde parou |
+| `python ml/eval/build_sets.py autorais` | Converte `ml/eval/sets/fontes/*.md` (instruções e segurança que você escreveu) em JSONL |
+| `python ml/eval/judge.py --model <m> --judge juiz` | Julga as respostas com o juiz aberto (no Kaggle) |
+| `python ml/eval/judge.py --model <m> --export-human 20` e depois `--agreement` | Amostra para você dar nota e a concordância com o juiz |
+| `python ml/data/build_dataset.py --check` | Valida os exemplos autorais de treino |
+| `python ml/data/build_dataset.py` | Monta `ml/data/out/train.jsonl` e `val.jsonl` |
+| `python -m pytest ml` | Testes do harness e do dataset |
+
+Modelos abertos e juiz rodam no **notebook do Kaggle** (`ml/eval/notebooks/baseline_kaggle.ipynb`): importe-o no Kaggle (*File → Import Notebook*), ligue *GPU T4 x2* e *Internet*, rode as células em ordem e baixe o `avaliacao.zip` no fim.

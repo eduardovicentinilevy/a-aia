@@ -1,6 +1,6 @@
 # Progresso
 
-## Fase 0 — Fundação · ✅ pronta (falta só a validação no Windows do Eduardo)
+## Fase 0 — Fundação · ✅ pronta (validada no Windows do Eduardo em 26/11/2026)
 
 **Critério de pronto:** `docker compose up` + `npm run dev` → conversa com streaming funcionando localmente; testes passando.
 
@@ -119,7 +119,63 @@
 
 ---
 
-## Fase 2 — Dados e avaliação · ⏳ não iniciada
+## Fase 2 — Dados e avaliação · 🟡 ferramentas prontas, faltam os conjuntos autorais e as linhas de base no Kaggle
+
+**Critério de pronto:** `python ml/eval/run.py --model <x>` gera relatório; linha de base registrada aqui; licença de cada candidato verificada e anotada.
+
+### Entregue
+- **Harness de avaliação (`ml/eval`)** em Python só com a biblioteca padrão:
+  - qualquer endpoint compatível com OpenAI (Gemini, vLLM, Ollama) e um mock offline;
+  - ritmo e novas tentativas para o plano gratuito; **cache e retomada**: rodar de novo só pergunta o que falta;
+  - relatório com intervalos de confiança de 95% (Wilson) e a **Nota AçaIA** (média de ENEM, rubrica e segurança).
+- **Métricas explicadas** em `ml/README.md` ("Como ler as métricas"):
+  - acurácia (com o acaso em 20%);
+  - rubrica de 1 a 5 em correção, utilidade, português, tom e concisão, convertida para 0–100;
+  - recusa correta (meta ≥ 95%), recusa indevida (meta ≤ 5%) e acolhimento.
+- **ENEM 2024**: 179 questões com as descrições textuais das imagens, a partir do projeto GPT-4-ENEM (MIT), com a atribuição em `ml/eval/sets/LICENSES.md` (D-024).
+- **Formato Markdown e guia** para você escrever ~100 instruções e ~120 casos de segurança (`ml/eval/sets/README.md`), mais o conversor `build_sets.py`.
+- **Juiz** (`judge.py`):
+  - as respostas avaliadas ficam entre delimitadores, como defesa contra prompt injection;
+  - só modelos abertos podem julgar (`judge_allowed`, D-023);
+  - amostra para nota humana e cálculo da concordância.
+- **Notebook do Kaggle** para os 3 candidatos e o juiz, via vLLM. A primeira célula confere o id e a licença de cada modelo.
+- **Dataset de ajuste fino (`ml/data`)** (D-025):
+  - exemplos autorais em Markdown, com validador;
+  - OpenAssistant + Aya, os dois Apache-2.0 e escritos por humanos;
+  - **descontaminação** contra todas as perguntas da avaliação;
+  - rascunhos por modelo aberto, que só entram depois de revisados;
+  - manifesto de licenças.
+- **CI**: job de Python com os testes do harness.
+
+### Verificado
+- **87 testes** em Python (pytest), passando.
+- Harness ponta a ponta: com o mock e com o **Gemini de verdade**, que respondeu no formato `Resposta: X`.
+- Juiz ponta a ponta com um juiz mock; a trava impede o Pro de julgar ou gerar rascunhos.
+- Conversão do ENEM conferida: 179 questões, nenhuma imagem sem descrição, e a licença MIT idêntica à original.
+- **Linha de base do Pro no ENEM 2024: rodando** (resultado em `ml/eval/reports/pro.md`).
+
+### Linha de base (preencher)
+
+| Modelo | Licença (verificada) | ENEM 2024 | Instruções (0–100) | Recusa correta | Recusa indevida | Nota AçaIA |
+| --- | --- | --- | --- | --- | --- | --- |
+| Pro (`gemini-3.5-flash-lite`) | proprietária | (rodando) | — | — | — | — |
+| Qwen3.5-4B | a confirmar no Kaggle | — | — | — | — | — |
+| Gemma 4 E4B | a confirmar no Kaggle | — | — | — | — | — |
+| Tucano2-qwen-3.7B | a confirmar no Kaggle | — | — | — | — | — |
+
+### O que **você** precisa fazer
+1. [ ] Preparar o Python no seu PC (`ml/README.md`) e rodar `python ml/eval/run.py --model mock` para conferir.
+2. [ ] Escrever **~100 instruções** em `ml/eval/sets/fontes/instrucoes.md` e **~120 casos de segurança** em `ml/eval/sets/fontes/seguranca.md` (guia em `ml/eval/sets/README.md`). Depois, `python ml/eval/build_sets.py autorais` e commit.
+3. [ ] **Kaggle:** conta com telefone verificado; importar `ml/eval/notebooks/baseline_kaggle.ipynb`; confirmar na célula 3 os ids e as **licenças** dos 3 candidatos e do juiz; rodar tudo; baixar o `avaliacao.zip` e me mandar os relatórios.
+4. [ ] Dar nota na amostra humana (`judge.py --export-human 20`) para validar o juiz.
+5. [ ] Escrever os **≥ 300 exemplos autorais** (`ml/data/README.md`), à mão ou com `draft.py` + revisão.
+6. [ ] No Kaggle ou no seu PC: `python ml/data/fetch_sources.py` e depois `python ml/data/build_dataset.py`.
+
+### Pendências
+- As correções do code review da Fase 1 continuam abertas (a mais grave: `db:rollback` com `0` ou com um valor inválido desfaz tudo).
+
+---
+
 ## Fase 3 — AçaIA Copinho · ⏳ não iniciada
 ## Fase 4 — Orquestrador e RAG · ⏳ não iniciada
 ## Fase 5 — Segurança e polimento · ⏳ não iniciada
