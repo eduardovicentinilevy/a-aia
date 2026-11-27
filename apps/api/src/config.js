@@ -13,7 +13,12 @@ const env = (schema) => z.preprocess(blankToUndefined, schema);
 const EnvSchema = z
   .object({
     NODE_ENV: env(z.enum(['development', 'test', 'production']).default('development')),
-    PORT: env(z.coerce.number().int().min(1).max(65535).default(8080)),
+    // 'server': the cloud API (Cloud Run). 'desktop': the Windows app (one local user, SQLite,
+    // listens only on 127.0.0.1 and serves the web build itself).
+    ACAIA_MODE: env(z.enum(['server', 'desktop']).default('server')),
+    PORT: env(z.coerce.number().int().min(0).max(65535).default(8080)),
+    SQLITE_PATH: env(z.string().optional()),
+    WEB_DIST_DIR: env(z.string().optional()),
     LOG_LEVEL: env(z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info')),
     CORS_ORIGIN: env(z.string().default('http://localhost:5173')),
     DATABASE_URL: env(z.string().optional()),
@@ -46,8 +51,15 @@ const EnvSchema = z
       const invalid = parseEmails(values[key]).filter((email) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
       if (invalid.length > 0) problem(key, `e-mail inválido na lista (${invalid.length})`);
     }
+    if (values.ACAIA_MODE === 'desktop') {
+      if (!values.SQLITE_PATH) problem('SQLITE_PATH', 'obrigatória no modo desktop (arquivo do banco local)');
+      if (values.FIREBASE_PROJECT_ID) problem('FIREBASE_PROJECT_ID', 'não use login no modo desktop (é um usuário local)');
+    } else if (values.PORT === 0) {
+      problem('PORT', 'porta 0 (aleatória) só no modo desktop');
+    }
     // In production there is no "dev user": real login, a real database and an invite list are mandatory.
-    if (values.NODE_ENV === 'production') {
+    // (The desktop app is a single local user on the person's own computer, so it is exempt.)
+    if (values.NODE_ENV === 'production' && values.ACAIA_MODE === 'server') {
       if (!values.FIREBASE_PROJECT_ID) problem('FIREBASE_PROJECT_ID', 'obrigatória em produção (login)');
       if (!values.DATABASE_URL) problem('DATABASE_URL', 'obrigatória em produção');
       if (parseEmails(values.ALLOWED_EMAILS).length + parseEmails(values.ADMIN_EMAILS).length === 0) {
@@ -88,7 +100,10 @@ export class ConfigError extends Error {
  *
  * @typedef {object} AppConfig
  * @property {'development'|'test'|'production'} nodeEnv
- * @property {number} port
+ * @property {'server'|'desktop'} mode
+ * @property {number} port  0 = any free port (desktop only).
+ * @property {string|undefined} sqlitePath  Local database file (desktop).
+ * @property {string|undefined} webDistDir  Built web app served by the API (desktop).
  * @property {'debug'|'info'|'warn'|'error'|'silent'} logLevel
  * @property {string[]} corsOrigins
  * @property {string|undefined} databaseUrl
@@ -117,7 +132,10 @@ export function loadConfig(source = process.env) {
   const values = result.data;
   return Object.freeze({
     nodeEnv: values.NODE_ENV,
+    mode: values.ACAIA_MODE,
     port: values.PORT,
+    sqlitePath: values.SQLITE_PATH,
+    webDistDir: values.WEB_DIST_DIR,
     logLevel: values.LOG_LEVEL,
     corsOrigins: values.CORS_ORIGIN.split(',')
       .map((origin) => origin.trim())

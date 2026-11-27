@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { createLocalOnlyGuard } from './middleware/local-only.js';
 import { createErrorHandler, notFoundHandler } from './middleware/errors.js';
 import { createIpRateLimit, createMessageRateLimit } from './middleware/rate-limit.js';
 import { requestLogger } from './middleware/request-log.js';
@@ -26,14 +27,22 @@ export const BODY_LIMIT = '16kb';
  * @param {import('express').RequestHandler} deps.authenticate  Sets req.user (Firebase auth, or the dev user locally).
  * @param {ReturnType<typeof import('./orchestrator/usage.js').createUsageLimits>} deps.usageLimits
  * @param {{ ip?: { windowMs?: number, limit?: number }, messages?: { windowMs?: number, limit?: number } }} [deps.rateLimits]
+ * @param {{ getPort: () => number, webDistDir?: string }} [deps.desktop]
+ *   Desktop app only: accept requests from the AçaIA window alone and serve the built web app.
  */
-export function createApp({ config, logger, store, pipeline, humanizer, checkDb, version, authenticate, usageLimits, rateLimits = {} }) {
+export function createApp({ config, logger, store, pipeline, humanizer, checkDb, version, authenticate, usageLimits, rateLimits = {}, desktop }) {
   const app = express();
+  if (desktop) app.use(createLocalOnlyGuard(desktop.getPort));
   // On Cloud Run, requests arrive through Google's front end: trust exactly one proxy hop
   // so req.ip is the real client address (used by the IP rate limit).
   if (config.trustProxy) app.set('trust proxy', 1);
 
-  app.use(helmet());
+  app.use(
+    desktop
+      ? // The desktop page is served over http://127.0.0.1: never ask the browser to upgrade to https.
+        helmet({ contentSecurityPolicy: { directives: { 'upgrade-insecure-requests': null } }, strictTransportSecurity: false })
+      : helmet(),
+  );
   app.use(
     cors({
       origin: config.corsOrigins,
@@ -59,6 +68,9 @@ export function createApp({ config, logger, store, pipeline, humanizer, checkDb,
     authenticate,
     createHumanizeRouter({ humanizer, usageLimits, rateLimit: createMessageRateLimit(rateLimits.messages), logger }),
   );
+
+  // Desktop: the same server delivers the chat page (index.html, JS, CSS, fonts).
+  if (desktop?.webDistDir) app.use(express.static(desktop.webDistDir, { index: 'index.html', maxAge: '1h' }));
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger));

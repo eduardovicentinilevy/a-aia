@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMemoryStore } from '../src/db/memory-store.js';
 import { createPostgresStore } from '../src/db/postgres-store.js';
+import { createSqliteStore, openSqliteDatabase } from '../src/db/sqlite-store.js';
 import { dbAvailable, freshDatabase } from './helpers/test-db.js';
 
 /**
@@ -14,6 +15,19 @@ const implementations = {
       let tick = Date.parse('2026-12-01T12:00:00Z');
       const store = createMemoryStore({ now: () => new Date((tick += 1000)) }); // clock always moves forward
       return { store, countModerationEvents: async () => store.moderationEvents.length, close: async () => {} };
+    },
+  },
+  sqlite: {
+    skip: false,
+    async setup() {
+      let tick = Date.parse('2026-12-01T12:00:00Z');
+      const db = openSqliteDatabase(':memory:');
+      const store = createSqliteStore(db, { now: () => new Date((tick += 1000)) });
+      return {
+        store,
+        countModerationEvents: async () => /** @type {any} */ (db.prepare('SELECT count(*) AS n FROM moderation_events').get()).n,
+        close: async () => store.close(),
+      };
     },
   },
   postgres: {

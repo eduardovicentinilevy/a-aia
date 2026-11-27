@@ -16,6 +16,9 @@ import { configureApi } from './lib/api.js';
 import { getIdToken, signOut } from './lib/auth.js';
 import './App.css';
 
+/** Built for the Windows app (apps/desktop): one local user, no login. */
+const DESKTOP_APP = import.meta.env.VITE_APP_MODE === 'desktop';
+
 export default function App() {
   const auth = useAuth();
   /** A 403 from the API (e-mail not verified / not invited) replaces the chat with an explanation. */
@@ -90,7 +93,7 @@ function ChatShell({ user, loginEnabled }) {
 
   const headerUser = user
     ? { name: user.displayName || user.email || 'Você', email: user.email }
-    : { name: 'Dev local', email: null };
+    : { name: DESKTOP_APP ? 'Você' : 'Dev local', email: null };
   // Only a real display name is used in the greeting (never the e-mail).
   const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? null;
 

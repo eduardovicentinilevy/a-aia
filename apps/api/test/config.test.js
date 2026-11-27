@@ -86,4 +86,19 @@ describe('loadConfig', () => {
     });
     expect(ok.firebaseProjectId).toBe('acaia-123456');
   });
+
+  it('accepts the desktop mode (no login, SQLite file, any free port), even in production', () => {
+    const config = loadConfig({ ACAIA_MODE: 'desktop', NODE_ENV: 'production', PORT: '0', SQLITE_PATH: 'C:/dados/acaia.db' });
+    expect(config).toMatchObject({ mode: 'desktop', port: 0, sqlitePath: 'C:/dados/acaia.db', firebaseProjectId: undefined });
+  });
+
+  it('demands the database file and forbids login in desktop mode', () => {
+    expect(() => loadConfig({ ACAIA_MODE: 'desktop' })).toThrow(/SQLITE_PATH/);
+    expect(() => loadConfig({ ACAIA_MODE: 'desktop', SQLITE_PATH: 'x.db', FIREBASE_PROJECT_ID: 'acaia-123' })).toThrow(/FIREBASE_PROJECT_ID/);
+  });
+
+  it('only allows port 0 in desktop mode', () => {
+    expect(() => loadConfig({ PORT: '0' })).toThrow(/PORT/);
+    expect(loadConfig({}).mode).toBe('server');
+  });
 });
