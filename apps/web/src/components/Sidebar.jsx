@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { groupConversations } from '../lib/format.js';
 import AcaiLogo from './AcaiLogo.jsx';
-import { ChatIcon, CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashIcon } from './Icons.jsx';
+import { ChatIcon, CheckIcon, CloseIcon, FeatherIcon, PencilIcon, PlusIcon, TrashIcon } from './Icons.jsx';
 import './Sidebar.css';
 
 /**
@@ -12,14 +12,16 @@ import './Sidebar.css';
  *   onClose: () => void,
  *   conversations: import('../lib/api.js').ConversationSummary[],
  *   activeId: string|null,
+ *   view: 'chat'|'humanize',
  *   onSelect: (id: string) => void,
  *   onNewChat: () => void,
+ *   onOpenHumanizer: () => void,
  *   onRename: (id: string, title: string) => Promise<void>,
  *   onDelete: (id: string) => Promise<void>,
  *   usage: { tokensUsed: number, dailyTokenLimit: number }|null,
  * }} props
  */
-export default function Sidebar({ open, onClose, conversations, activeId, onSelect, onNewChat, onRename, onDelete, usage }) {
+export default function Sidebar({ open, onClose, conversations, activeId, view, onSelect, onNewChat, onOpenHumanizer, onRename, onDelete, usage }) {
   // Not memoized: after midnight the next render already moves "Hoje" to "Ontem".
   const groups = groupConversations(conversations, new Date());
   return (
@@ -42,6 +44,21 @@ export default function Sidebar({ open, onClose, conversations, activeId, onSele
         <button type="button" className="sidebar__new" onClick={onNewChat}>
           <PlusIcon />
           Nova conversa
+        </button>
+
+        <button
+          type="button"
+          className={`sidebar__tool${view === 'humanize' ? ' sidebar__tool--active' : ''}`}
+          onClick={onOpenHumanizer}
+          aria-current={view === 'humanize' ? 'page' : undefined}
+        >
+          <span className="sidebar__tool-icon" aria-hidden="true">
+            <FeatherIcon />
+          </span>
+          <span className="sidebar__tool-text">
+            <strong>Humanizar texto</strong>
+            <span>Deixe um texto mais natural</span>
+          </span>
         </button>
 
         <nav className="sidebar__list" aria-label="Histórico de conversas">

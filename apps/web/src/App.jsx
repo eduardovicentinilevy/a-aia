@@ -4,6 +4,7 @@ import AcaiLogo from './components/AcaiLogo.jsx';
 import Composer from './components/Composer.jsx';
 import EmptyState from './components/EmptyState.jsx';
 import Header from './components/Header.jsx';
+import Humanizer from './components/Humanizer.jsx';
 import LoginScreen from './components/LoginScreen.jsx';
 import MessageList from './components/MessageList.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -56,6 +57,8 @@ function ChatShell({ user, loginEnabled }) {
   const conversations = useConversations();
   const usage = useUsage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  /** Which tool fills the main area: the chat or the "Humanizar" screen. */
+  const [view, setView] = useState(/** @type {'chat'|'humanize'} */ ('chat'));
   const chat = useChat({
     onConversationCreated: () => conversations.refresh(),
     onAnswerFinished: () => {
@@ -68,11 +71,17 @@ function ChatShell({ user, loginEnabled }) {
 
   const selectConversation = (/** @type {string} */ id) => {
     setSidebarOpen(false);
+    setView('chat');
     if (id !== chat.conversationId) chat.open(id);
   };
   const newChat = () => {
     setSidebarOpen(false);
+    setView('chat');
     chat.reset();
+  };
+  const openHumanizer = () => {
+    setSidebarOpen(false);
+    setView('humanize');
   };
   const deleteConversation = async (/** @type {string} */ id) => {
     await conversations.remove(id);
@@ -91,9 +100,11 @@ function ChatShell({ user, loginEnabled }) {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         conversations={conversations.items}
-        activeId={chat.conversationId}
+        activeId={view === 'chat' ? chat.conversationId : null}
+        view={view}
         onSelect={selectConversation}
         onNewChat={newChat}
+        onOpenHumanizer={openHumanizer}
         onRename={conversations.rename}
         onDelete={deleteConversation}
         usage={usage.data}
@@ -101,26 +112,30 @@ function ChatShell({ user, loginEnabled }) {
       <div className="app__main">
         <Header
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
-          title={hasMessages ? activeTitle : null}
+          title={view === 'humanize' ? 'Humanizar texto' : hasMessages ? activeTitle : null}
           user={headerUser}
           onSignOut={loginEnabled ? () => signOut() : null}
         />
         <main className="app__content">
-          {chat.loading ? (
-            <div className="app__status" role="status">
-              <span className="app__spinner" aria-hidden="true" />
-              Carregando conversa…
-            </div>
-          ) : chat.loadError ? (
-            <div className="app__status app__status--error" role="alert">
-              {chat.loadError}
-            </div>
-          ) : hasMessages ? (
-            <MessageList messages={chat.messages} />
-          ) : (
-            <EmptyState onPick={chat.send} firstName={firstName} />
-          )}
-          <Composer onSend={chat.send} onStop={chat.stop} isStreaming={chat.isStreaming} />
+          {/* Both views stay mounted (hidden), so switching never loses a text being written. */}
+          <Humanizer hidden={view !== 'humanize'} onFinished={usage.refresh} />
+          <div className="app__chat" hidden={view !== 'chat'}>
+            {chat.loading ? (
+              <div className="app__status" role="status">
+                <span className="app__spinner" aria-hidden="true" />
+                Carregando conversa…
+              </div>
+            ) : chat.loadError ? (
+              <div className="app__status app__status--error" role="alert">
+                {chat.loadError}
+              </div>
+            ) : hasMessages ? (
+              <MessageList messages={chat.messages} />
+            ) : (
+              <EmptyState onPick={chat.send} firstName={firstName} />
+            )}
+            <Composer onSend={chat.send} onStop={chat.stop} isStreaming={chat.isStreaming} />
+          </div>
         </main>
       </div>
     </div>

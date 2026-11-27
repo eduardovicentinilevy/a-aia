@@ -1,7 +1,11 @@
 import { parseSSE } from './sse-parser.js';
 
-/** API address. Set VITE_API_BASE_URL in the root .env to change it (the deploy sets the production URL). */
-export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080';
+/**
+ * API address. Set VITE_API_BASE_URL in the root .env to change it (the deploy sets the production URL).
+ * "same-origin" means the API serves this site itself (desktop app): requests go to the same host.
+ */
+const configuredBaseUrl = import.meta.env?.VITE_API_BASE_URL;
+export const API_BASE_URL = configuredBaseUrl === 'same-origin' ? '' : configuredBaseUrl || 'http://localhost:8080';
 
 /** Error returned by the API, with a message that can be shown to the user. */
 export class ApiError extends Error {
@@ -134,9 +138,29 @@ export async function sendMessage(conversationId, content, { signal, onEvent }) 
     headers: { Accept: 'text/event-stream' },
     signal,
   });
-  if (!response.body) throw new ApiError('A API devolveu uma resposta vazia.', response.status);
+  await readEvents(response, onEvent);
+}
 
+/** @param {Response} response @param {(event: string, data: any) => void} onEvent */
+async function readEvents(response, onEvent) {
+  if (!response.body) throw new ApiError('A API devolveu uma resposta vazia.', response.status);
   for await (const { event, data } of parseSSE(response.body)) {
     onEvent(event, JSON.parse(data));
   }
+}
+
+/**
+ * Rewrites a text so it sounds natural ("Humanizar"), streaming the result as SSE events
+ * (meta, token, done, error). Nothing is saved in the history.
+ * @param {{ text: string, tone: string, strength: string }} input
+ * @param {{ signal?: AbortSignal, onEvent: (event: string, data: any) => void }} options
+ */
+export async function humanizeText(input, { signal, onEvent }) {
+  const response = await apiFetch('/humanize', {
+    method: 'POST',
+    json: input,
+    headers: { Accept: 'text/event-stream' },
+    signal,
+  });
+  await readEvents(response, onEvent);
 }

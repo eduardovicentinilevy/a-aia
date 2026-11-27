@@ -6,6 +6,7 @@ import {
   createConversation,
   deleteConversation,
   getMessages,
+  humanizeText,
   listConversations,
   renameConversation,
   sendMessage,
@@ -140,3 +141,19 @@ describe('conversation endpoints', () => {
   });
 });
 
+
+describe('humanizeText', () => {
+  it('POSTs the text and options to /humanize and streams the events', async () => {
+    const fetchMock = vi.fn(async () =>
+      streamingResponse(['event: meta\ndata: {"model":"mock"}\n\n', 'event: token\ndata: {"text":"Oi"}\n\nevent: done\ndata: {}\n\n']),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const events = [];
+    await humanizeText({ text: 'Texto', tone: 'informal', strength: 'leve' }, { onEvent: (event, data) => events.push([event, data]) });
+    expect(events.map(([event]) => event)).toEqual(['meta', 'token', 'done']);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${API_BASE_URL}/humanize`);
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual({ text: 'Texto', tone: 'informal', strength: 'leve' });
+  });
+});
