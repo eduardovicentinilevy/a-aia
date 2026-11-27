@@ -6,6 +6,7 @@ import { createIpRateLimit, createMessageRateLimit } from './middleware/rate-lim
 import { requestLogger } from './middleware/request-log.js';
 import { createConversationsRouter } from './routes/conversations.js';
 import { createHealthRouter } from './routes/health.js';
+import { createHumanizeRouter } from './routes/humanize.js';
 import { createMeRouter } from './routes/me.js';
 
 /** Max JSON body size. A chat message is at most 8000 characters. */
@@ -19,13 +20,14 @@ export const BODY_LIMIT = '16kb';
  * @param {import('./lib/logger.js').Logger} deps.logger
  * @param {import('./db/store.js').Store} deps.store
  * @param {ReturnType<typeof import('./orchestrator/pipeline.js').createChatPipeline>} deps.pipeline
+ * @param {ReturnType<typeof import('./orchestrator/humanize.js').createHumanizer>} deps.humanizer
  * @param {() => Promise<import('./db/pool.js').DatabaseStatus>} deps.checkDb
  * @param {string} deps.version
  * @param {import('express').RequestHandler} deps.authenticate  Sets req.user (Firebase auth, or the dev user locally).
  * @param {ReturnType<typeof import('./orchestrator/usage.js').createUsageLimits>} deps.usageLimits
  * @param {{ ip?: { windowMs?: number, limit?: number }, messages?: { windowMs?: number, limit?: number } }} [deps.rateLimits]
  */
-export function createApp({ config, logger, store, pipeline, checkDb, version, authenticate, usageLimits, rateLimits = {} }) {
+export function createApp({ config, logger, store, pipeline, humanizer, checkDb, version, authenticate, usageLimits, rateLimits = {} }) {
   const app = express();
   // On Cloud Run, requests arrive through Google's front end: trust exactly one proxy hop
   // so req.ip is the real client address (used by the IP rate limit).
@@ -51,6 +53,11 @@ export function createApp({ config, logger, store, pipeline, checkDb, version, a
     '/conversations',
     authenticate,
     createConversationsRouter({ store, pipeline, usageLimits, messageRateLimit: createMessageRateLimit(rateLimits.messages), logger }),
+  );
+  app.use(
+    '/humanize',
+    authenticate,
+    createHumanizeRouter({ humanizer, usageLimits, rateLimit: createMessageRateLimit(rateLimits.messages), logger }),
   );
 
   app.use(notFoundHandler);

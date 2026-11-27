@@ -8,10 +8,11 @@ import { createPostgresStore } from './db/postgres-store.js';
 import { createLogger } from './lib/logger.js';
 import { createAuthMiddleware, createFirebaseTokenVerifier } from './middleware/auth.js';
 import { createDevUserMiddleware } from './middleware/dev-user.js';
+import { createHumanizer } from './orchestrator/humanize.js';
 import { createChatPipeline } from './orchestrator/pipeline.js';
 import { createUsageLimits } from './orchestrator/usage.js';
 import { createModerationProvider } from './providers/moderation/index.js';
-import { loadSystemPrompt, SYSTEM_PROMPT_VERSION } from './prompts/index.js';
+import { HUMANIZE_PROMPT_VERSION, loadPrompt, loadSystemPrompt, SYSTEM_PROMPT_VERSION } from './prompts/index.js';
 import { createProProvider } from './providers/model/pro.js';
 
 let config;
@@ -62,14 +63,24 @@ const usageLimits = createUsageLimits({
   dailyTokenLimit: config.dailyTokenLimit,
   monthlyBudgetCents: config.monthlyBudgetCents,
 });
+const moderation = createModerationProvider(config.moderationProvider);
 const pipeline = createChatPipeline({
   store,
   proProvider,
-  moderation: createModerationProvider(config.moderationProvider),
+  moderation,
   usageLimits,
   systemPrompt: loadSystemPrompt(SYSTEM_PROMPT_VERSION),
   promptVersion: SYSTEM_PROMPT_VERSION,
   maxOutputTokens: config.maxOutputTokens,
+  logger,
+});
+const humanizer = createHumanizer({
+  store,
+  provider: proProvider,
+  moderation,
+  usageLimits,
+  systemPrompt: loadPrompt('humanize', HUMANIZE_PROMPT_VERSION),
+  promptVersion: `humanize.${HUMANIZE_PROMPT_VERSION}`,
   logger,
 });
 
@@ -78,6 +89,7 @@ const app = createApp({
   logger,
   store,
   pipeline,
+  humanizer,
   checkDb: () => checkDatabase(pool),
   version: pkg.version,
   authenticate,

@@ -4,15 +4,16 @@ import { createApp } from '../src/app.js';
 import { createMemoryStore } from '../src/db/memory-store.js';
 import { createDevUserMiddleware } from '../src/middleware/dev-user.js';
 import { silentLogger } from '../src/lib/logger.js';
+import { createHumanizer } from '../src/orchestrator/humanize.js';
 import { createChatPipeline } from '../src/orchestrator/pipeline.js';
 import { createUsageLimits } from '../src/orchestrator/usage.js';
 import { createMockProvider } from '../src/providers/model/mock.js';
 import { createMockModerationProvider } from '../src/providers/moderation/mock.js';
 
 /**
- * @param {{ checkDb?: () => Promise<any>, proProvider?: any, dailyTokenLimit?: number, rateLimits?: any }} [options]
+ * @param {{ checkDb?: () => Promise<any>, proProvider?: any, humanizeProvider?: any, dailyTokenLimit?: number, rateLimits?: any }} [options]
  */
-function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proProvider, dailyTokenLimit = 1000, rateLimits } = {}) {
+function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proProvider, humanizeProvider, dailyTokenLimit = 1000, rateLimits } = {}) {
   const store = createMemoryStore();
   const usageLimits = createUsageLimits({ store, dailyTokenLimit, monthlyBudgetCents: 0 });
   const pipeline = createChatPipeline({
@@ -25,11 +26,21 @@ function buildApp({ checkDb = async () => ({ ok: true, pgvector: true }), proPro
     maxOutputTokens: 256,
     logger: silentLogger,
   });
+  const humanizer = createHumanizer({
+    store,
+    provider: humanizeProvider ?? createMockProvider({ name: 'pro', model: 'mock', reply: 'Texto reescrito.', delayMs: 0 }),
+    moderation: createMockModerationProvider(),
+    usageLimits,
+    systemPrompt: 'HUMANIZE',
+    promptVersion: 'humanize.v1',
+    logger: silentLogger,
+  });
   const app = createApp({
     config: { corsOrigins: ['http://localhost:5173'], adminEmails: ['dev@localhost'], dailyTokenLimit },
     logger: silentLogger,
     store,
     pipeline,
+    humanizer,
     checkDb,
     version: '0.0.0-test',
     authenticate: createDevUserMiddleware(store),
@@ -285,3 +296,66 @@ describe('limits on sending messages', () => {
   });
 });
 
+
+describe('POST /humanize', () => {
+  it('streams the rewritten text as SSE and stores nothing but usage', async () => {
+    const { app } = buildApp();
+    const res = await request(app)
+      .post('/humanize')
+      .send({ text: 'É importante ressaltar que o texto é robótico.', tone: 'informal', strength: 'forte' })
+      .buffer(true)
+      .parse(asText)
+      .expect(200);
+
+    expect(res.headers['content-type']).toMatch(/^text\/event-stream/);
+    const events = parseEvents(res.body);
+    expect(events[0]).toMatchObject({ event: 'meta', data: { routeReason: 'humanize', promptVersion: 'humanize.v1' } });
+    expect(events.filter((e) => e.event === 'token').map((e) => e.data.text).join('')).toBe('Texto reescrito.');
+    expect(events.at(-1)?.event).toBe('done');
+
+    // No conversation was created, but the usage was counted.
+    const { body: list } = await request(app).get('/conversations');
+    expect(list.conversations).toEqual([]);
+    const { body: usage } = await request(app).get('/me/usage');
+    expect(usage.tokensUsed).toBeGreaterThan(0);
+  });
+
+  it('uses natural tone and medium strength by default', async () => {
+    /** @type {any[]} */
+    let seen = [];
+    const humanizeProvider = createMockProvider({
+      name: 'pro',
+      model: 'mock',
+      delayMs: 0,
+      reply: (messages) => {
+        seen = messages;
+        return 'ok';
+      },
+    });
+    const { app } = buildApp({ humanizeProvider });
+    await request(app).post('/humanize').send({ text: 'Um texto qualquer.' }).buffer(true).parse(asText).expect(200);
+    expect(seen[1].content).toContain('Tom: natural');
+    expect(seen[1].content).toContain('Intensidade: média');
+    expect(seen[1].content).toContain('<texto_original>\nUm texto qualquer.\n</texto_original>');
+  });
+
+  it('validates the body', async () => {
+    const { app } = buildApp();
+    const empty = await request(app).post('/humanize').send({ text: '   ' }).expect(400);
+    expect(empty.body.error.issues[0].message).toBe('O texto está vazio.');
+    const tooLong = await request(app).post('/humanize').send({ text: 'a'.repeat(8001) }).expect(400);
+    expect(tooLong.body.error.issues[0].message).toBe('O texto passou de 8000 caracteres.');
+    const badTone = await request(app).post('/humanize').send({ text: 'oi', tone: 'pirata' }).expect(400);
+    expect(badTone.body.error.issues[0].message).toBe('Tom inválido.');
+    await request(app).post('/humanize').send({ text: 'oi', extra: true }).expect(400);
+  });
+
+  it('answers 429 JSON before streaming when the daily limit is reached', async () => {
+    const { app, store } = buildApp({ dailyTokenLimit: 100 });
+    const { body: me } = await request(app).get('/me');
+    const { body: usage } = await request(app).get('/me/usage');
+    await store.addUsage(me.id, usage.day, { tokensIn: 100, tokensOut: 0, costCents: 0 });
+    const res = await request(app).post('/humanize').send({ text: 'oi' }).expect(429);
+    expect(res.body.error.code).toBe('daily_limit_reached');
+  });
+});
