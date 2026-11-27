@@ -95,13 +95,28 @@ export async function startServer(config, { logger = createLogger({ level: confi
     logger,
   });
 
+  // Answers being generated right now. On close we wait for them (they save what was already
+  // streamed) before closing the database, instead of failing with "database is not open".
+  /** @type {Set<Promise<unknown>>} */
+  const inflight = new Set();
+  /** @template {(...args: any[]) => Promise<any>} F @param {F} fn @returns {F} */
+  const tracked = (fn) =>
+    /** @type {F} */ (
+      (...args) => {
+        const promise = fn(...args);
+        inflight.add(promise);
+        promise.finally(() => inflight.delete(promise)).catch(() => {});
+        return promise;
+      }
+    );
+
   let port = config.port;
   const app = createApp({
     config: { ...config, trustProxy: config.nodeEnv === 'production' && !desktopMode },
     logger,
     store,
-    pipeline,
-    humanizer,
+    pipeline: { handleMessage: tracked(pipeline.handleMessage) },
+    humanizer: { handle: tracked(humanizer.handle) },
     checkDb: storage.checkDb,
     version: pkg.version,
     authenticate,
@@ -132,8 +147,10 @@ export async function startServer(config, { logger = createLogger({ level: confi
     async close() {
       await new Promise((resolve) => {
         server.close(() => resolve(undefined));
-        server.closeAllConnections(); // open SSE streams would keep it alive
+        server.closeAllConnections(); // open SSE streams would keep it alive (and abort their model calls)
       });
+      const timeout = new Promise((resolve) => setTimeout(resolve, 3000).unref());
+      await Promise.race([Promise.allSettled([...inflight]), timeout]);
       await storage.close();
     },
   };

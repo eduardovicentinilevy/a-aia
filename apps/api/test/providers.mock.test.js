@@ -52,4 +52,16 @@ describe('MockProvider', () => {
     const provider = createMockProvider({ reply: 'a b c', delayMs: 0, fail: { afterTokens: 1, error } });
     await expect(collect(provider.stream({ messages, maxTokens: 100 }))).rejects.toBe(error);
   });
+
+  it('gives a "Humanizar" text back unchanged, saying it is a test', async () => {
+    const provider = createMockProvider({ delayMs: 0 });
+    const messages = [
+      { role: 'system', content: 'S' },
+      { role: 'user', content: 'Tom: natural.\n\n<texto_original>\nEm suma, tudo certo.\n</texto_original>' },
+    ];
+    let text = '';
+    for await (const event of provider.stream({ messages, maxTokens: 500 })) if (event.type === 'token') text += event.text;
+    expect(text).toMatch(/^\(Modo de teste/);
+    expect(text.endsWith('Em suma, tudo certo.')).toBe(true);
+  });
 });

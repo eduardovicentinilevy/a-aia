@@ -7,11 +7,18 @@ import { ProviderError } from '../errors.js';
 /** @param {ChatMessage[]} messages */
 function defaultReply(messages) {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  // "Humanizar" request: there is no real model to rewrite it, so give the text back unchanged
+  // (the x-ray then honestly shows the same signals as the original).
+  const original = /<texto_original>\n?([\s\S]*?)\n?<\/texto_original>/.exec(lastUser)?.[1];
+  if (original !== undefined) {
+    return `(Modo de teste: nenhum modelo de verdade está respondendo, então o texto volta sem mudanças.)\n\n${original}`;
+  }
   const excerpt = lastUser.length > 200 ? `${lastUser.slice(0, 200)}…` : lastUser;
   return (
     'Oi! Eu sou a AçaIA em modo de teste (MockProvider): nenhum modelo de verdade está respondendo agora. ' +
     `Você escreveu: "${excerpt}". ` +
-    'Para conversar com um modelo real, configure o Pro no arquivo .env (veja docs/RUNBOOK.md).'
+    'Para conversar com um modelo real, configure uma chave: no app para Windows, menu AçaIA → Trocar chave do Gemini; ' +
+    'no servidor, o arquivo .env (veja docs/RUNBOOK.md).'
   );
 }
 

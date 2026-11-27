@@ -27,7 +27,7 @@ const TONE_INSTRUCTIONS = {
 
 /** @type {Record<typeof STRENGTHS[number], string>} */
 const STRENGTH_INSTRUCTIONS = {
-  leve: 'leve: altere só o que soa artificial ou repetitivo e mantenha a maior parte das frases',
+  leve: 'leve: troque só o que soa artificial (clichês, repetições, conectivos em série) e mantenha o resto das frases como estão',
   media: 'média: reescreva as frases que precisarem, mantendo a estrutura geral dos parágrafos',
   forte: 'forte: reescreva livremente, com outras palavras, podendo reorganizar frases e parágrafos, sem perder nenhuma informação',
 };
