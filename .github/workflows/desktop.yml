@@ -1,0 +1,55 @@
+# Builds the Windows app (installer + portable ZIP) on a Windows machine of GitHub.
+# Download it from: Actions → "App para Windows" → the latest run → Artifacts.
+name: App para Windows
+
+on:
+  workflow_dispatch: # "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - apps/desktop/**
+      - apps/api/src/**
+      - apps/web/src/**
+      - apps/web/vite.config.js
+      - .github/workflows/desktop.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Gerar AcaIA-Setup.exe
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Instalar dependências (API e site)
+        run: npm ci
+
+      - name: Instalar dependências (app desktop)
+        run: npm ci --prefix apps/desktop
+
+      - name: Testes do app desktop
+        run: npm test --prefix apps/desktop
+
+      - name: Gerar instalador e versão portátil
+        working-directory: apps/desktop
+        run: |
+          node scripts/build.mjs
+          npx electron-builder --win nsis zip --x64 --publish never
+
+      - name: Publicar os arquivos
+        uses: actions/upload-artifact@v7
+        with:
+          name: AcaIA-Windows
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.zip
+          if-no-files-found: error
+          retention-days: 30

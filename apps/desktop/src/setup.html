@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Local page: only its own script and styles, nothing from the internet. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:" />
+    <title>AçaIA: configuração</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <main class="setup">
+      <svg class="setup__logo" width="72" height="72" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M33 13C35 6 42 2 50 3c-2 7-9 11-17 10z" class="leaf" />
+        <circle cx="21" cy="40" r="15" class="berry-2" />
+        <circle cx="43" cy="40" r="15" class="berry-3" />
+        <circle cx="32" cy="25" r="14" class="berry-1" />
+        <circle cx="27" cy="20" r="3.5" fill="#fff" opacity=".35" />
+      </svg>
+      <h1>Bem-vindo à <span class="gradient">AçaIA</span></h1>
+      <p class="setup__lead">
+        Para conversar e humanizar textos, a AçaIA usa o Gemini, do Google. Ele tem um plano gratuito: você só
+        precisa de uma chave.
+      </p>
+
+      <ol class="setup__steps">
+        <li>
+          Abra o <a href="#" id="studio-link">Google AI Studio</a>, entre com sua conta Google e clique em
+          <strong>Create API key</strong>.
+        </li>
+        <li>Copie a chave e cole aqui embaixo.</li>
+      </ol>
+
+      <form id="form" class="setup__form" novalidate>
+        <label for="key">Chave do Gemini</label>
+        <div class="setup__field">
+          <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Cole a chave aqui" />
+          <button type="button" id="toggle" class="setup__toggle" aria-pressed="false">Mostrar</button>
+        </div>
+        <p id="saved-hint" class="setup__hint" hidden>Já existe uma chave salva. Cole outra para trocar.</p>
+
+        <details class="setup__advanced">
+          <summary>Avançado</summary>
+          <label for="model">Modelo</label>
+          <input id="model" type="text" autocomplete="off" spellcheck="false" />
+        </details>
+
+        <p id="message" class="setup__message" role="alert" hidden></p>
+        <button type="submit" id="save" class="setup__primary">Salvar e começar</button>
+      </form>
+
+      <p class="setup__privacy">
+        A chave fica guardada de forma criptografada só neste computador, e suas conversas também. O texto das
+        mensagens é enviado ao Google para gerar as respostas.
+      </p>
+      <button type="button" id="demo" class="setup__link">Só quero ver: abrir no modo demonstração (sem chave)</button>
+    </main>
+    <script src="setup.js"></script>
+  </body>
+</html>

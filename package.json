@@ -19,7 +19,11 @@
     "db:rollback": "npm run db:rollback -w apps/api --",
     "dev": "node scripts/dev.mjs",
     "test": "npm run test --workspaces --if-present",
-    "pro:models": "npm run pro:models -w apps/api"
+    "pro:models": "npm run pro:models -w apps/api",
+    "desktop:install": "npm ci --prefix apps/desktop",
+    "desktop:start": "npm run start --prefix apps/desktop",
+    "desktop:dist": "npm run dist --prefix apps/desktop",
+    "desktop:test": "npm test --prefix apps/desktop"
   },
   "allowScripts": {
     "@firebase/util": false

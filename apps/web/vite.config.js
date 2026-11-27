@@ -6,6 +6,8 @@ import { defineConfig } from 'vite';
 /** Defaults for the public VITE_* values the app reads. */
 const PUBLIC_DEFAULTS = {
   VITE_API_BASE_URL: 'http://localhost:8080',
+  // 'desktop' = build for the Windows app (apps/desktop): no login, API on the same origin.
+  VITE_APP_MODE: '',
   // Firebase web config (public by design — security comes from Firebase Auth rules and the API).
   // All empty = login disabled in development.
   VITE_FIREBASE_API_KEY: '',
@@ -35,6 +37,13 @@ function webEnv() {
   /** @type {Record<string, string>} */
   const publicVars = {};
   for (const [key, fallback] of Object.entries(PUBLIC_DEFAULTS)) publicVars[key] = get(key) ?? fallback;
+
+  // The desktop app is one local user served by its own API: never ship the Firebase login
+  // (even if the .env has it) and always call the API on the same origin.
+  if (publicVars.VITE_APP_MODE === 'desktop') {
+    publicVars.VITE_API_BASE_URL = 'same-origin';
+    for (const key of Object.keys(publicVars)) if (key.startsWith('VITE_FIREBASE_')) publicVars[key] = '';
+  }
 
   return { port: Number(get('WEB_PORT') ?? 5173), publicVars };
 }

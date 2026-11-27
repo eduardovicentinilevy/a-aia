@@ -1,0 +1,71 @@
+{
+  "name": "acaia-desktop",
+  "productName": "AçaIA",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AçaIA para Windows: chat e Humanizar rodando no seu computador",
+  "author": "AçaIA",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron .",
+    "dist": "node scripts/build.mjs && electron-builder --win nsis --x64 --publish never",
+    "dist:dir": "node scripts/build.mjs && electron-builder --dir --publish never",
+    "test": "node --test test/"
+  },
+  "allowScripts": {
+    "electron": true,
+    "esbuild": false,
+    "electron-winstaller": false
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2"
+  },
+  "build": {
+    "appId": "br.com.acaia.desktop",
+    "productName": "AçaIA",
+    "executableName": "AcaIA",
+    "copyright": "AçaIA",
+    "electronLanguages": [
+      "pt-BR",
+      "en-US"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "package.json",
+      "src/**/*",
+      "build/server/**/*",
+      "build/fonts/**/*",
+      "resources/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "build/web",
+        "to": "web"
+      }
+    ],
+    "win": {
+      "icon": "resources/icon.png",
+      "artifactName": "AcaIA-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "AçaIA",
+      "uninstallDisplayName": "AçaIA",
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": "dir",
+      "icon": "resources/icon.png"
+    }
+  }
+}
