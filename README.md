@@ -29,6 +29,8 @@ Abra **http://localhost:5173** e converse. Sem configurar nada:
 
 Para usar um modelo real de graça, siga "Configurar o Pro" no RUNBOOK. Para publicar na internet, veja `docs/GCP_SETUP.md` (Fase 1).
 
+**Também tem:** a tela **Humanizar texto** (deixa um texto mais natural, com o mesmo conteúdo) e a **AçaIA para Windows**, um programa que roda no seu computador com o Gemini. Veja o RUNBOOK §11.
+
 ## Comandos
 
 | Comando | O que faz |
@@ -40,12 +42,16 @@ Para usar um modelo real de graça, siga "Configurar o Pro" no RUNBOOK. Para pub
 | `npm test` | Roda todos os testes (API e web) |
 | `npm run build -w apps/web` | Gera o site de produção do chat em `apps/web/dist/` |
 | `npm run pro:models` | Lista os modelos disponíveis para a sua chave do Pro |
+| `npm run desktop:install` | Instala o que o app para Windows precisa (Electron), uma vez só |
+| `npm run desktop:start` | Abre a AçaIA como programa do Windows, sem instalar |
+| `npm run desktop:dist` | Gera o instalador `apps/desktop/release/AcaIA-Setup-<versão>.exe` |
 
 ## Estrutura
 
 ```
 apps/api/      API Node.js/Express: rotas, orquestrador, providers, prompts
 apps/web/      Chat web em React + CSS puro (Vite), com o açaí como cor principal
+apps/desktop/  App para Windows (Electron): a mesma API e o mesmo chat, rodando no seu PC
 infra/         docker-compose do banco local e script de setup do Google Cloud
 .github/       CI (testes) e deploy automático (Cloud Run + Firebase Hosting)
 scripts/       utilitários de desenvolvimento (multiplataforma)

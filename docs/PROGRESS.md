@@ -206,7 +206,37 @@ Todo o chat foi redesenhado, ainda em React + CSS puro e com o açaí como cor p
 
 ---
 
-## Fase 3 — AçaIA Copinho · ⏳ não iniciada
+## Humanizar texto e app para Windows (pedido extra) · ✅ feito, falta você testar no Windows
+
+- **Humanizar texto** (D-027):
+  - tela na barra lateral com tom (natural, informal, profissional, acadêmico) e intensidade (leve, média, forte);
+  - resultado em streaming ao lado do original, com **Copiar** e **Usar como original** (para refinar de novo);
+  - **raio-x** sem IA mostra clichês, conectivos em série, ritmo uniforme, palavras repetidas e travessões, antes e depois;
+  - `POST /humanize` com prompt versionado, texto tratado como dado não confiável, moderação e limites. O texto não fica salvo;
+  - prompt ajustado testando no Gemini real: as saídas ficaram sem clichês nos tons testados.
+- **App para Windows** (D-028):
+  - `apps/desktop` (Electron): instalador `AcaIA-Setup-0.1.0.exe` e versão portátil;
+  - mesma API e mesmo chat, em modo `desktop`: SQLite no `%APPDATA%`, só `127.0.0.1`, um usuário local sem login;
+  - primeira tela pede a chave do Gemini, testa no Google e guarda criptografada pelo Windows. Há modo demonstração;
+  - menu em português: trocar chave, abrir pasta dos dados, apagar todos os dados;
+  - o GitHub gera o instalador sozinho (workflow **App para Windows**).
+- **Verificado:**
+  - API: 159 testes (inclui o contrato do banco rodando também no SQLite, o modo desktop com bloqueio de Host/Origin e o humanizador);
+  - web: 75 testes (raio-x, estado do humanizador, cliente da API);
+  - app: 9 testes (configurações, chave criptografada, ambiente da API);
+  - API empacotada rodando dentro do Node do Electron 45;
+  - app empacotado aberto de verdade (Playwright + Electron): tela de configuração, chave errada recusada pelo Google, modo demonstração, conversa salva no SQLite e Humanizar;
+  - prints em claro, escuro e celular.
+- **Não verificado aqui:** o `.exe` no Windows de verdade. Meu ambiente é Linux: gerei a versão portátil para Windows, mas não consigo abri-la.
+
+### O que você precisa fazer
+1. Atualizar o projeto: `git pull origin main` (se der erro de `package-lock.json`, rode `git stash` antes).
+2. Baixar o app em **Actions → App para Windows → Artifacts** (ou gerar com `npm run desktop:install` e `npm run desktop:dist`). Passo a passo em `docs/RUNBOOK.md` §11.
+3. Abrir, colar a chave do Gemini e testar o chat e o Humanizar. Se algo falhar, me mande o print ou as últimas linhas de `%APPDATA%\AçaIA\logs\acaia.log`.
+
+---
+
+## Fase 3 — AçaIA Copinho · ⏸️ plano apresentado, pausada para os pedidos extras
 ## Fase 4 — Orquestrador e RAG · ⏳ não iniciada
 ## Fase 5 — Segurança e polimento · ⏳ não iniciada
 ## Fase 6 — Beta fechado · ⏳ não iniciada

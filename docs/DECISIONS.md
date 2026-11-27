@@ -297,3 +297,44 @@ Cada decisão tem contexto, escolha e motivo. Quando uma decisão mudar, não ap
   - não há outra origem para liberar no CSP;
   - as versões ficam travadas no `package-lock.json`.
 - **Custo:** são só arquivos `.woff2` e CSS, sem JavaScript, e o `npm audit` está limpo. O navegador baixa apenas os subconjuntos usados (`unicode-range`): para português, a fonte do texto e a de código têm cerca de 30 a 40 KB cada uma, e a de código só é baixada quando aparece código.
+
+---
+
+# Pedidos extras: Humanizar e app para Windows
+
+## D-027 — Humanizar texto
+**Pedido do Eduardo · aceita**
+
+- **O que é:** uma tela "Humanizar texto". A pessoa cola um texto com cara de robô, escolhe o **tom** (natural, informal, profissional, acadêmico) e a **intensidade** (leve, média, forte) e recebe uma versão natural, com o mesmo conteúdo, em streaming e lado a lado com o original.
+- **Como funciona:** `POST /humanize` (SSE, como o chat), com o prompt versionado `apps/api/src/prompts/humanize.v1.md` e o mesmo modelo Pro (Gemini).
+  - O texto colado vai entre `<texto_original>` e `</texto_original>`, como dado não confiável. As marcas são removidas de dentro do texto antes, para que ele não "feche" o bloco e injete instruções.
+  - Mesmas proteções do chat: limite diário, moderação de entrada e saída e registro de uso e custo.
+  - **O texto não é salvo**; só os contadores de uso. É menos dado pessoal guardado (LGPD).
+- **Raio-x:** um verificador determinístico em JavaScript (`apps/web/src/lib/text-xray.js`) mostra clichês, conectivos em série, ritmo uniforme, palavras repetidas e excesso de travessões, antes e depois. Não usa modelo, roda no navegador e explica o que mudou.
+- **O que não é:** não prometemos "passar em detector de IA". Esses detectores erram muito, então não dá para medir nem garantir isso. O objetivo é qualidade de texto, e a tela avisa para revisar antes de usar.
+- **Ajuste com o modelo real:** testei no Gemini (`gemini-3.5-flash-lite`). Na primeira versão do prompt, o tom acadêmico mantinha os clichês e o profissional escreveu "cenário profissional". O prompt e as instruções de intensidade foram ajustados até as saídas saírem limpas nos tons testados.
+- **Treino do Copinho:** pela D-023, respostas do Gemini (inclusive textos humanizados) **não** podem virar dados de treino. Exemplos de humanização para o Copinho precisam ser escritos pelo Eduardo.
+- **Dependências novas:** nenhuma.
+
+## D-028 — AçaIA como programa do Windows (Electron), com o Gemini
+**Pedido do Eduardo · aceita** · altera o CLAUDE.md §4 e §5 (como em D-013)
+
+- **Pedido:** rodar a AçaIA localmente, como um executável, mantendo o Gemini como modelo.
+- **Arquitetura:** a mesma API e o mesmo chat, em um terceiro modo (`ACAIA_MODE=desktop`):
+  - **Banco:** SQLite em `%APPDATA%\AçaIA\acaia.db`, com o `node:sqlite` que já vem no Node. Não há dependência nova. É uma terceira implementação do contrato `Store`, testada pela mesma bateria do PostgreSQL e da memória.
+  - **Usuário:** um só, sem login ("Você"). A config proíbe login nesse modo, e o modo servidor continua exigindo Firebase em produção.
+  - **Rede:** a API escuta **só em 127.0.0.1**, numa porta livre qualquer. Como não há login, ela também confere os cabeçalhos **Host** (contra *DNS rebinding*) e **Origin** (contra outros sites abertos no navegador). Ela mesma serve o site, então não há CORS.
+  - **Modelo:** Gemini pela API compatível com OpenAI, com a **chave da própria pessoa**. A primeira tela pede a chave e a testa no Google (listar modelos não gasta tokens). A chave é guardada **criptografada** com o `safeStorage` do Electron (DPAPI do Windows: só aquele usuário do Windows abre). Há um modo demonstração sem chave.
+  - **Sem limite diário** no app: é a chave e o computador da pessoa. O plano gratuito do Google tem limites próprios, e quando estoura aparece uma mensagem amigável.
+  - **LGPD no desktop:** menu "Apagar todos os meus dados" (banco, chave e registros) e "Abrir pasta dos meus dados".
+- **Por que Electron:** é todo em JavaScript (o Eduardo domina) e é o padrão de mercado (VS Code, Slack e Discord são feitos assim). A janela é própria e há instalador. A alternativa mais leve, um `.exe` do próprio Node abrindo a janela do Edge, é um recurso novo e menos documentado.
+- **Segurança do Electron:** `contextIsolation` e `sandbox` ligados e `nodeIntegration` desligado. A janela do chat não navega para fora da API local, e links abrem no navegador. A tela de configuração só fala com o processo principal por 4 funções (`preload.cjs`), e o processo principal confere quem chamou.
+- **Dependências novas** (só em `apps/desktop`, só para gerar o app; todas MIT; versões exatas com pelo menos 2 semanas de lançamento):
+  - `electron` 45.3.2: a janela e o Node que roda a API;
+  - `electron-builder` 26.18.0: gera o instalador (NSIS) e a versão portátil (ZIP);
+  - `esbuild` 0.28.2: junta a API em um arquivo só, para o instalador não precisar de `node_modules`.
+- **Por que `apps/desktop` não é um workspace:** assim o `npm install` da raiz, o CI e a imagem Docker da API não baixam o Electron (~100 MB). O app tem o próprio `package-lock.json`.
+- **Limites conhecidos:**
+  - **O texto sai do computador:** as mensagens vão para o Google gerar as respostas, e a tela de configuração e o "Sobre" dizem isso. Rodar o modelo no próprio PC (llama.cpp) fica para depois da Fase 3, com o Copinho.
+  - **Aviso do SmartScreen:** o `.exe` não tem assinatura digital, porque o certificado é pago. O Windows mostra "O Windows protegeu o computador" e é preciso clicar em "Mais informações" → "Executar assim mesmo".
+  - **O instalador NSIS precisa do Windows** (ou do Wine) para ser gerado. O workflow `desktop.yml` gera no `windows-latest` do GitHub. Aqui no Linux testei a versão portátil e o app empacotado (Linux) de ponta a ponta com Playwright: configuração, modo demonstração, chat salvo no SQLite e Humanizar.

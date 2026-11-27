@@ -42,6 +42,8 @@ Dois níveis de modelo, escolhidos por um orquestrador:
 7. Moderação de entrada e de saída, limites de uso e rate limiting.
 8. Botões gostei/não gostei em cada resposta, com consentimento opcional para treino.
 9. Endpoints de privacidade (LGPD): exportar e apagar todos os meus dados.
+10. **Humanizar texto:** reescrever um texto para soar natural, mantendo o conteúdo, com tom e intensidade. *(Adicionado a pedido do Eduardo, ver `docs/DECISIONS.md` D-027.)*
+11. **App para Windows:** a AçaIA como executável local (Electron), com banco SQLite no computador e o Gemini como modelo. *(Adicionado a pedido do Eduardo, ver D-028.)*
 
 ### Fora do escopo (não implemente, mesmo se parecer fácil)
 - Treinar um modelo do zero; gerar imagem, vídeo, música ou voz.
@@ -69,7 +71,8 @@ Ciclo de melhoria (assíncrono): avaliações com consentimento → dataset → 
 ### 5.2 Stack
 - **API:** Node.js (LTS atual), Express, JavaScript com ES Modules e JSDoc. Validação com `zod`, segurança com `helmet`, CORS restrito e rate limit.
 - **Web:** React com Vite, em JavaScript (JSX) e **CSS puro** (um `.css` por componente e variáveis CSS; sem Tailwind, CSS-in-JS ou biblioteca de UI). **Cor principal: açaí** (paleta em `apps/web/src/styles/tokens.css`). Streaming via `fetch` + `ReadableStream` lendo SSE (não use `EventSource`, que não aceita POST). Markdown renderizado com sanitização (`DOMPurify` ou equivalente). *(Alterado na Fase 0 a pedido do Eduardo; antes era "HTML, CSS e JS puro, sem framework" — ver `docs/DECISIONS.md` D-013.)*
-- **Banco:** PostgreSQL com a extensão `pgvector` (Cloud SQL em produção, Docker em desenvolvimento). Migrações versionadas, por exemplo com `node-pg-migrate`.
+- **Banco:** PostgreSQL com a extensão `pgvector` (Cloud SQL em produção, Docker em desenvolvimento). Migrações versionadas, por exemplo com `node-pg-migrate`. No app para Windows, SQLite local (`node:sqlite`), ver D-028.
+- **App para Windows:** `apps/desktop` (Electron) roda a mesma API em modo `desktop` (só 127.0.0.1, um usuário local, sem login) e abre o chat numa janela própria. *(Adicionado a pedido do Eduardo, ver D-028.)*
 - **Login:** Firebase Authentication / Identity Platform (Google + e-mail). **Não implemente senha do zero.** A API valida o ID token.
 - **Arquivos:** Cloud Storage para os PDFs.
 - **Modelo próprio:** Python, PyTorch, Hugging Face (`transformers`, `peft`, `trl`, `datasets`), QLoRA para treinar e **vLLM** para servir com API compatível com OpenAI.
@@ -90,7 +93,8 @@ acaia/
 │  │  │  ├─ middleware/    # auth, rate limit, erros, logs com mascaramento de PII
 │  │  │  └─ prompts/       # system prompt versionado (system.v1.md, ...)
 │  │  └─ test/
-│  └─ web/                 # chat em React + Vite (gera um site estático)
+│  ├─ web/                 # chat em React + Vite (gera um site estático)
+│  └─ desktop/             # app para Windows (Electron) que roda a API e o chat localmente (D-028)
 ├─ services/
 │  └─ inference/           # Dockerfile do vLLM + config para Cloud Run GPU
 ├─ ml/

@@ -227,3 +227,57 @@ Preparar o Python uma vez: veja `ml/README.md` (venv + `pip install -r ml/requir
 | `python -m pytest ml` | Testes do harness e do dataset |
 
 Modelos abertos e juiz rodam no **notebook do Kaggle** (`ml/eval/notebooks/baseline_kaggle.ipynb`): importe-o no Kaggle (*File → Import Notebook*), ligue *GPU T4 x2* e *Internet*, rode as células em ordem e baixe o `avaliacao.zip` no fim.
+
+## 11. App para Windows e Humanizar
+
+### 11.1 Humanizar texto
+
+Na barra lateral, clique em **Humanizar texto**. Cole o texto, escolha o tom e a intensidade e clique em **Humanizar** (ou aperte `Ctrl+Enter`). O raio-x embaixo mostra o que deixava o texto com cara de robô, antes e depois. O texto não fica salvo.
+
+### 11.2 Baixar o app pronto (recomendado)
+
+O GitHub gera o instalador num Windows dele a cada mudança na `main`:
+
+1. No GitHub do projeto, abra **Actions** → **App para Windows**.
+2. Clique na execução mais recente com ✅. Se não houver nenhuma, clique em **Run workflow**.
+3. Em **Artifacts**, baixe **AcaIA-Windows** e descompacte. Dentro há:
+   - `AcaIA-Setup-0.1.0.exe`: instalador (cria atalho no menu Iniciar);
+   - `AcaIA-0.1.0-portatil.zip`: versão sem instalar (descompacte e abra `AcaIA.exe`).
+4. O Windows vai mostrar **"O Windows protegeu o computador"**, porque o app não tem assinatura digital (o certificado é pago). Clique em **Mais informações** → **Executar assim mesmo**.
+
+### 11.3 Gerar o app no seu PC
+
+```powershell
+git pull origin main
+npm install
+npm run desktop:install
+npm run desktop:dist
+```
+
+O instalador sai em `apps/desktop/release/`. Para só abrir o app, sem gerar instalador, use `npm run desktop:start`.
+
+### 11.4 Primeira vez
+
+1. Crie uma chave grátis no **Google AI Studio** (aistudio.google.com → *Create API key*). O link também está na própria tela.
+2. Cole a chave e clique em **Salvar e começar**. O app testa a chave no Google antes de salvar.
+3. Para só olhar, use **modo demonstração**: as respostas são de teste e nenhum modelo real responde.
+
+### 11.5 Onde ficam as coisas
+
+| O quê | Onde |
+| --- | --- |
+| Conversas (SQLite) | `%APPDATA%\AçaIA\acaia.db` |
+| Chave do Gemini (criptografada pelo Windows) | `%APPDATA%\AçaIA\settings.json` |
+| Registros de erro | `%APPDATA%\AçaIA\logs\acaia.log` |
+
+O menu aparece com a tecla **Alt**. Em **AçaIA**, você troca a chave, abre a pasta dos dados ou apaga tudo. As mensagens vão para o Google para gerar as respostas; o resto fica no seu computador.
+
+### 11.6 Problemas comuns do app
+
+| Sintoma | Solução |
+| --- | --- |
+| `npm run desktop:start` diz que o Electron não foi instalado | `node apps/desktop/node_modules/electron/install.js` e tente de novo |
+| "O Google recusou essa chave" | Copie a chave inteira de novo no AI Studio, sem espaços |
+| "O limite de uso do modelo foi atingido" | É o limite do plano gratuito do Google; espere um pouco |
+| O antivírus bloqueou o `.exe` | Acontece com apps sem assinatura; libere o arquivo ou use a versão portátil |
+| O app abre e fecha | Veja `%APPDATA%\AçaIA\logs\acaia.log` e me mande as últimas linhas (não há chave nos registros) |
